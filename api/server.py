@@ -48,19 +48,22 @@ class RequestHandler(BaseHTTPRequestHandler):
             hashed_password = hashlib.md5(password.encode()).hexdigest()
             users = load_json('data/users.json')
             for user in users:
-                if user.get("username") == username and user.get("password") == hashed_password:
-                    token = str(uuid.uuid4())
-                    add_session(token, user)
-                    self.send_response(200)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
-                    return
-            else:
-                self.send_response(401)
-                self.send_header("Content-type", "application/json")
-                self.end_headers()
-                self.wfile.write(b"Invalid credentials")
+                if user.get("username") == username:
+                    if user.get("password") == hashed_password:
+                        token = str(uuid.uuid4())
+                        add_session(token, user)
+                        self.send_response(200)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"message": "User logged in", "session_token": token}).encode('utf-8'))
+                        return
+                
+                    else:
+                        self.send_response(401)
+                        self.send_header("Content-type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(b"Invalid credentials")
+                        return
                     
             self.send_response(401)
             self.send_header("Content-type", "application/json")
@@ -79,7 +82,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             session_user = get_session(token)
             if 'sessions' in self.path:
                 lid = self.path.split("/")[2]
-                data = json.loads(self.rfile.read(int(self.headers.get("Content-Length"))))
+                data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
                 sessions = load_json(f'data/pdata/p{lid}-sessions.json')
                 if self.path.endswith('start'):
                     if 'licenseplate' not in data:
@@ -183,16 +186,16 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
             else:
                 data["user"] = session_user["username"]
-            reservations[rid] = data
-            data["id"] = rid
-            parking_lots[data["parkinglot"]]["reserved"] += 1
-            save_reservation_data(reservations)
-            save_parking_lot_data(parking_lots)
-            self.send_response(201)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"status": "Success", "reservation": data}).encode("utf-8"))
-            return
+                reservations[rid] = data
+                data["id"] = rid
+                parking_lots[data["parkinglot"]]["reserved"] += 1
+                save_reservation_data(reservations)
+                save_parking_lot_data(parking_lots)
+                self.send_response(201)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "Success", "reservation": data}).encode("utf-8"))
+                return
         
         elif self.path == "/vehicles":
             token = self.headers.get('Authorization')

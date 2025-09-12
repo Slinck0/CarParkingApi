@@ -1,0 +1,35 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS bestanden
+.DS_Store
+
+# Virtuele omgevingen
+venv/
+.env/
+.venv/
+
+# IDE/Editor bestanden
+.vscode/
+.idea/
+
+# Test-/procesbestanden (bru-json testbestanden en tijdelijke jsons)
+*.bru
+*.bruno.json
+bruno.json
+
+# Data-bestanden 
+api/data/*.json
+api/data/*.csv
+api/data/pdata/*.json
+
+# Logs
+*.log
+
+# Overige tijdelijke bestanden
+*.tmp
+*.swp
+*.bak
