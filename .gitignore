@@ -1,0 +1,35 @@
+# macOS en Windows rommel
+.DS_Store
+__MACOSX/
+Thumbs.db
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# Virtuele omgevingen
+venv/
+.env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data-bestanden
+api/data/*.json
+api/data/*.csv
+api/data/pdata/*.json
+
+# Logs
+*.log
+
+# Overige tijdelijke bestanden
+*.tmp
+*.swp
+*.bak
+
+# Custom mappen
+Process/
