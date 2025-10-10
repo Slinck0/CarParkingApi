@@ -1,0 +1,28 @@
+meta {
+  name: vehicles
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8000/vehicles/AB123C/entry
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: fbb4dfd8-4d11-43e6-bc85-cb32855f1a33
+}
+
+body:json {
+  {
+      
+    "parkinglot": 2
+    
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

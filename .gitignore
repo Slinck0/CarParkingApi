@@ -1,35 +1,34 @@
-# macOS en Windows rommel
+# macOS / Windows
 .DS_Store
 __MACOSX/
 Thumbs.db
 
-# IDE/Editor
+# IDE / Editor
 .vscode/
 .idea/
 
-# Virtuele omgevingen
+# Virtual environments
+.venv/
 venv/
 .env/
-.venv/
 
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+*/__pycache__/
+*/.pytest_cache/
 
-# Data-bestanden
-api/data/*.json
-api/data/*.csv
-api/data/pdata/*.json
-
-# Logs
+# Logs & temp
 *.log
-
-# Overige tijdelijke bestanden
 *.tmp
 *.swp
 *.bak
 
-# Custom mappen
-Process/
+# === Project-specifiek ===
+
+# Negeer ALLE data onder V1/api/data (alle subfolders)
+V1/api/data/**
+
