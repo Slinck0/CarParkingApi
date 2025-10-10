@@ -33,3 +33,6 @@ api/data/pdata/*.json
 
 # Custom mappen
 Process/
+
+# Root-level data directory
+data/
