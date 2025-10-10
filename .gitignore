@@ -31,4 +31,5 @@ __pycache__/
 
 # Negeer ALLE data onder V1/api/data (alle subfolders)
 V1/api/data/**
+V1/api/Process/** 
 
