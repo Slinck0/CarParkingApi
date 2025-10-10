@@ -160,7 +160,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"Unauthorized: Invalid or missing session token")
                 return
             session_user = get_session(token)
-            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
+            data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
             reservations = load_reservation_data()
             parking_lots = load_parking_lot_data()
             rid = str(len(reservations) + 1)
@@ -186,8 +186,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
             else:
                 data["user"] = session_user["username"]
-                reservations[rid] = data
                 data["id"] = rid
+                reservations.append(data)
                 parking_lots[data["parkinglot"]]["reserved"] += 1
                 save_reservation_data(reservations)
                 save_parking_lot_data(parking_lots)
@@ -208,7 +208,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             session_user = get_session(token)
             data  = json.loads(self.rfile.read(int(self.headers.get("Content-Length", -1))))
             vehicles = load_json("data/vehicles.json")
-            uvehicles = vehicles.get(session_user["username"], {})
+            user = session_user["username"]
+            uvehicles = vehicles.get(session_user["username"],{})
             for field in ["name", "license_plate"]:
                 if not field in data:
                     self.send_response(401)
@@ -216,7 +217,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": "Require field missing", "field": field}).encode("utf-8"))
                     return
-            lid = data["license_plate"].replace("-", "")
+            lid = data["license_plate"].replace("-", "")    
             if lid in uvehicles:
                 self.send_response(401)
                 self.send_header("Content-type", "application/json")
@@ -225,7 +226,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 return
             if not uvehicles:
                 vehicles[session_user["username"]] = {}
-            vehicles[session_user["username"]][lid] = {
+                vehicles[session_user["username"]][lid] = {
                 "licenseplate": data["license_plate"],
                 "name": data["name"],
                 "created_at": datetime.now(),
@@ -925,3 +926,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 server = HTTPServer(('localhost', 8000), RequestHandler)
 print("Server running on http://localhost:8000")
 server.serve_forever()
+
+def start_server(host="127.0.0.1", port=8000):
+    httpd = HTTPServer((host, port), RequestHandler)
+    print(f"Server running on http://{host}:{port}")
+    return httpd
+
+if __name__ == "__main__":
+    start_server().serve_forever()
+
