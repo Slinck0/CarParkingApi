@@ -75,6 +75,16 @@ def test_create_reservation_bad_missing_field(base_url, auth_token, reservation_
     assert any(k in body for k in ("error", "message", "detail", "errors")), \
         f"Geen foutinformatie in body: {body}"
 
+def test_create_reservation_unauthenticated(base_url, reservation_payload):
+    r = requests.post(
+        f"{base_url}/reservations",
+        json=reservation_payload,
+        timeout=5,
+    )
+
+    assert r.status_code == 401, f"Verwacht 401, kreeg: {r.status_code} {r.text}"
+
+    
     
    
     
