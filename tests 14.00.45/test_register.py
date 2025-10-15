@@ -1,6 +1,7 @@
 import pytest
 import requests
 import json
+import uuid
 
 @pytest.fixture
 def base_url():
@@ -8,8 +9,10 @@ def base_url():
 
 @pytest.fixture
 def test_user():
+    suffix = uuid.uuid4().hex[:8]
+
     return {
-        'username': 'testuser',
+        'username': 'testuser{suffix}',
         'password': 'testpass123',
         'name': 'Test User'
     }
