@@ -7,7 +7,7 @@ def base_url():
 
 @pytest.fixture
 def creds():
-    return {"username": "testuser", "password": "testpass123"}
+    return {"username": "testuser", "password": "testuserpass"}
 
 @pytest.fixture
 def auth_token(base_url, creds):
@@ -19,6 +19,15 @@ def auth_token(base_url, creds):
     token = data.get("session_token")
     assert token, f"Geen session_token in response: {data}"
     return token  
+@pytest.fixture
+def auth_token_admin(base_url):
+    creds_admin = {"username": "Rens1", "password": "Rens"}
+    r = requests.post(f"{base_url}/login", json=creds_admin, timeout=5)
+    assert r.status_code in (200, 201), f"Login faalt: {r.status_code} {r.text}"
+    data = r.json()
+    token = data.get("session_token")
+    assert token, f"Geen session_token in response: {data}"
+    return token
 
 @pytest.fixture
 def reservation_payload():
@@ -84,8 +93,35 @@ def test_create_reservation_unauthenticated(base_url, reservation_payload):
 
     assert r.status_code == 401, f"Verwacht 401, kreeg: {r.status_code} {r.text}"
 
-    
-    
+def test_edit_reseravation(base_url, reservation_payload,auth_token):
+
+    r = requests.put(
+        f"{base_url}/reservations/2010",
+        json=reservation_payload,
+        headers={"Authorization": auth_token},
+        timeout=5,
+    )
+    assert r.status_code in (200, 204), f"Verwacht 200 of 204, kreeg: {r.status_code} {r.text}"
+
+def test_remove_reservation(base_url, reservation_payload,auth_token):
+
+    r = requests.delete(
+        f"{base_url}/reservations/2010",
+        json=reservation_payload,
+        headers={"Authorization": auth_token},
+        timeout=5,
+    )
+    assert r.status_code in (200, 204), f"Verwacht 200 of 204, kreeg: {r.status_code} {r.text}"
+
+def test_get_reservations(base_url, auth_token):
+
+    r = requests.get(
+        f"{base_url}/reservations",
+        headers={"Authorization": auth_token},
+        timeout=5,
+    )
+    assert r.status_code in (200, 204), f"Verwacht 200 of 204, kreeg: {r.status_code} {r.text}"
+
    
     
 
