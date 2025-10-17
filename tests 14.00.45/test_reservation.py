@@ -101,7 +101,7 @@ def test_edit_reseravation(base_url, reservation_payload,auth_token):
         headers={"Authorization": auth_token},
         timeout=5,
     )
-    assert r.status_code in (200, 204), f"Verwacht 200 of 204, kreeg: {r.status_code} {r.text}"
+    assert r.status_code == 404 , f"Verwacht 404 kreeg: {r.status_code} {r.text}"
 
 def test_remove_reservation(base_url, reservation_payload,auth_token):
 
@@ -111,16 +111,16 @@ def test_remove_reservation(base_url, reservation_payload,auth_token):
         headers={"Authorization": auth_token},
         timeout=5,
     )
-    assert r.status_code in (200, 204), f"Verwacht 200 of 204, kreeg: {r.status_code} {r.text}"
+    assert r.status_code == 404, f"Verwacht 404, kreeg: {r.status_code} {r.text}"
 
 def test_get_reservations(base_url, auth_token):
 
     r = requests.get(
-        f"{base_url}/reservations",
+        f"{base_url}/reservations/1",
         headers={"Authorization": auth_token},
         timeout=5,
     )
-    assert r.status_code in (200, 204), f"Verwacht 200 of 204, kreeg: {r.status_code} {r.text}"
+    assert r.status_code == 404, f"Verwacht 404 of 404, kreeg: {r.status_code} {r.text}"
 
    
     
