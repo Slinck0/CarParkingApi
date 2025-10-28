@@ -303,7 +303,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     "amount": -abs(data.get("amount", 0)),
                     "coupled_to": data.get("coupled_to"),
                     "processed_by": session_user["username"],
-                    "created_at": datetime.now().strftime("%d-%m-%Y %H:%I:%s"),
+                    "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S    "),
                     "completed": False,
                     "hash": sc.generate_transaction_validation_hash()
                 }
@@ -319,7 +319,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     "transaction": data.get("transaction"),
                     "amount": data.get("amount", 0),
                     "initiator": session_user["username"],
-                    "created_at": datetime.now().strftime("%d-%m-%Y %H:%I:%s"),
+                    "created_at": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),  # Was %H:%I:%s,
                     "completed": False,
                     "hash": sc.generate_transaction_validation_hash()
                 }
@@ -496,7 +496,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": "Validation failed", "info": "The validation of the security hash could not be validated for this transaction."}).encode("utf-8"))
                     return  
-                payment["completed"] = datetime.now().strftime("%d-%m-%Y %H:%I:%s")
+                payment["completed"] = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
                 payment["t_data"] = data.get("t_data", {})
                 save_payment_data(payments)
                 self.send_response(200)
