@@ -1,4 +1,3 @@
-# test_profile.py
 import pytest
 import requests
 
