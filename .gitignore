@@ -33,3 +33,7 @@ __pycache__/
 V1/api/data/**
 V1/api/Process/** 
 
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
