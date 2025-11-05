@@ -10,6 +10,6 @@ public class User
     public string Phone { get; set; } = null!;
     public string Role { get; set; } = "USER";
     public DateOnly CreatedAt { get; set; }
-    public int BirthYear { get; set; }
+    public int? BirthYear { get; set; }
     public bool Active { get; set; }
 }

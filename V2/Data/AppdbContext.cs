@@ -61,7 +61,7 @@ public class AppDbContext : DbContext
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(255).IsRequired();
             e.Property(x => x.Email).HasMaxLength(255).IsRequired();
-            e.HasIndex(x => x.Email).IsUnique();
+            e.HasIndex(x => x.Email);
         });
         mb.Entity<Vehicle>(e =>
         {
