@@ -15,7 +15,7 @@ public static class LotsImporter
         var root = JsonSerializer.Deserialize<Dictionary<string, LotRaw>>(json, opts) ?? new();
 
         var valid = new List<ParkingLot>();
-        var bad   = new List<LotRaw>();
+        var bad = new List<LotRaw>();
         const string df = "yyyy-MM-dd";
 
         foreach (var r in root.Values)
@@ -29,7 +29,8 @@ public static class LotsImporter
             var closedDate = string.IsNullOrWhiteSpace(r.closed_date) ? (DateOnly?)null
                 : (DateOnly.TryParseExact(r.closed_date, df, CultureInfo.InvariantCulture, DateTimeStyles.None, out var cd) ? cd : null);
 
-            valid.Add(new ParkingLot {
+            valid.Add(new ParkingLot
+            {
                 Id = id,
                 Name = r.name,
                 Location = r.location,
@@ -69,6 +70,6 @@ public static class LotsImporter
         await db.SaveChangesAsync();
 
         if (bad.Count > 0)
-            await File.WriteAllTextAsync("bad-parking-lots.json", JsonSerializer.Serialize(bad, new JsonSerializerOptions{WriteIndented = true}));
+            await File.WriteAllTextAsync("bad-parking-lots.json", JsonSerializer.Serialize(bad, new JsonSerializerOptions { WriteIndented = true }));
     }
 }

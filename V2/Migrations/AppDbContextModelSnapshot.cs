@@ -182,7 +182,7 @@ namespace V2.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("BirthYear")
+                    b.Property<int?>("BirthYear")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly>("CreatedAt")
@@ -216,8 +216,7 @@ namespace V2.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasIndex("Email");
 
                     b.ToTable("user", (string)null);
                 });
