@@ -9,7 +9,6 @@ namespace ParkingImporter.Import;
 
 public static class VehiclesImporter
 {
-    // ===== Helpers =====
 
     private static string? NormalizePlate(string? plate)
     {
@@ -193,7 +192,6 @@ public static class VehiclesImporter
             final.Add(v);
         }
 
-        // ===== Upsert op Id =====
         var ids = final.Select(v => v.Id).ToList();
         var existingById = await db.Vehicles
                                    .Where(v => ids.Contains(v.Id))
@@ -211,7 +209,6 @@ public static class VehiclesImporter
             }
         }
 
-        // ===== Persist =====
         var saved = await db.SaveChangesAsync();
         Console.WriteLine($"Vehicles import: ok={final.Count}, overgeslagen={bad.Count}, savedChanges={saved}");
 
