@@ -167,3 +167,5 @@
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Tokens.dll
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/System.IdentityModel.Tokens.Jwt.dll
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/appsettings.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/bad-reservations.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/vehicles.json
