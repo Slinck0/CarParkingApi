@@ -1,9 +1,10 @@
 using System.Data.Common;
+using System.Security.Principal;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using ParkingImporter.Data;
-
-
+using ParkingImporter.Models;
+using ParkingApi.Services;
 namespace ParkingApi.Endpoints;
 public static class Endpoints
 {
@@ -42,16 +43,25 @@ public static class Endpoints
             db.SaveChanges();
             return Results.Created($"/users/{user.Id}", new { user.Id, user.Username, user.Email });
         });
-        
-        app.MapPost("/login", (LoginRequest req, AppDbContext db) =>
+
+        app.MapPost("/login", async (LoginRequest req, AppDbContext db, TokenService token) =>
         {
             if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
             {
                 return Results.BadRequest("Bad request:/nUsername and Password are required.");
             }
+            var user = db.Users.FirstOrDefault(u => u.Username == req.Username);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.Password))
+            {
+                return Results.Unauthorized();
+            }
 
-            
-            return Results.Ok("Login endpoint - logic not implemented yet.");
+            var jwt = token.CreateToken(user);
+            return Results.Ok(new
+            {
+                token = jwt,
+                user = new UserResponse(user.Id, user.Username, user.Role.ToString())
+            });
         });
     }
 }

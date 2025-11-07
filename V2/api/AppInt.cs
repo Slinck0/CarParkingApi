@@ -25,6 +25,8 @@ public static  class AppInt
 
         if (File.Exists(vehiclesPath))
             await VehiclesImporter.ImportAsync(db, vehiclesPath);
+        if (File.Exists(paymentsPath))
+            await PaymentsImporter.ImportAsync(db, paymentsPath);
         
 
         Console.WriteLine("Alle imports gereed ✅");
