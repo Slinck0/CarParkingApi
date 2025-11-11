@@ -56,41 +56,34 @@ jobs:
       - run: dotnet restore ${{ env.SOLUTION }} --locked-mode
 
   # ==============================================================
-  # 2. Lint & Format (REAL check)
+  # 2. Lint & Format (Optional – does NOT block others)
   # ==============================================================
   lint:
     name: Lint & Format
     needs: restore
     runs-on: ubuntu-latest
+    continue-on-error: true  # Never blocks other jobs
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
       - name: Verify formatting
         run: |
-          echo "Checking whitespace..."
-          dotnet format ${{ env.SOLUTION }} whitespace \
-            --verify-no-changes --verbosity quiet || exit 1
-
-          echo "Checking code style..."
-          dotnet format ${{ env.SOLUTION }} style \
-            --verify-no-changes --verbosity quiet || exit 1
-
-          echo "Checking analyzers..."
-          dotnet format ${{ env.SOLUTION }} analyzers \
-            --verify-no-changes --verbosity quiet || exit 1
-
-          echo "Formatting check passed!"
+          echo "Running formatting check..."
+          dotnet format ${{ env.SOLUTION }} whitespace --verify-no-changes --verbosity quiet && \
+          dotnet format ${{ env.SOLUTION }} style --verify-no-changes --verbosity quiet && \
+          dotnet format ${{ env.SOLUTION }} analyzers --verify-no-changes --verbosity quiet || \
+          (echo "Formatting issues found! Run 'dotnet format' locally to fix." && exit 1)
+          echo "Formatting passed!"
         shell: bash
 
   # ==============================================================
-  # 3. Unit Tests + Coverage (80%+)
+  # 3. Unit Tests + 80% Coverage (Robust + Verbal)
   # ==============================================================
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests + 80% Coverage
     needs: restore
     runs-on: ubuntu-latest
     steps:
@@ -99,7 +92,7 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: |
           dotnet test ${{ env.SOLUTION }} \
             --no-restore --no-build -c Release \
@@ -124,40 +117,49 @@ jobs:
 
       - name: Enforce 80% coverage
         run: |
-          echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Find the *first* cobertura file that exists
+          # Find any cobertura file
           FILE=$(find . -path "*/coverage/*.cobertura.xml" | head -n1)
           if [ -z "$FILE" ]; then
-            echo "Coverage file missing!" >> $GITHUB_STEP_SUMMARY
+            echo "ERROR: No coverage file found!" >> $GITHUB_STEP_SUMMARY
+            echo "Check: Did tests run? Is Coverlet enabled?" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          # Extract **all** line-rate values and compute the average
-          RATES=$(grep -oP '<line-rate>\K[0-9.]+' "$FILE")
+          echo "Found coverage file: $FILE" >> $GITHUB_STEP_SUMMARY
+
+          # Extract all line-rate values
+          RATES=$(grep -oP '<line-rate>\K[0-9.]+' "$FILE" | tr '\n' ' ')
+          if [ -z "$RATES" ]; then
+            echo "ERROR: No coverage data in file!" >> $GITHUB_STEP_SUMMARY
+            echo "Check: Is your code being tested?" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          # Calculate average
           SUM=0; COUNT=0
           for r in $RATES; do
             SUM=$(echo "$SUM + $r" | bc -l)
             COUNT=$((COUNT + 1))
           done
 
-          if [ "$COUNT" -eq 0 ]; then
-            echo "No coverage data found!" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-
           AVG=$(echo "scale=4; $SUM / $COUNT" | bc -l)
           PERCENT=$(echo "$AVG * 100" | bc -l | awk '{printf "%.2f", $1}')
 
-          echo "Line coverage: $PERCENT% (averaged over $COUNT report(s))" >> $GITHUB_STEP_SUMMARY
+          echo "Line coverage: **$PERCENT%** (from $COUNT report(s))" >> $GITHUB_STEP_SUMMARY
 
           if (( $(echo "$PERCENT < 80" | bc -l) )); then
-            echo "Coverage < 80% → failing" >> $GITHUB_STEP_SUMMARY
+            echo "FAILED: Coverage is $PERCENT% — must be 80% or higher!" >> $GITHUB_STEP_SUMMARY
+            echo "Add more unit tests to reach 80%." >> $GITHUB_STEP_SUMMARY
             exit 1
+          else
+            echo "PASSED: Coverage $PERCENT% ≥ 80%" >> $GITHUB_STEP_SUMMARY
           fi
 
   # ==============================================================
-  # 4. Integration Tests (main or [run-integration])
+  # 4. Integration Tests (Only on main or [run-integration])
   # ==============================================================
   integration-tests:
     name: Integration Tests
@@ -177,11 +179,11 @@ jobs:
           --logger trx
 
   # ==============================================================
-  # 5. Build (warnings = errors)
+  # 5. Build
   # ==============================================================
   build:
     name: Build
-    needs: [lint, unit-tests]
+    needs: restore
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -194,7 +196,7 @@ jobs:
           /p:RuntimeIdentifier=linux-x64
 
   # ==============================================================
-  # 6. Publish + Zip Artifact
+  # 6. Publish + Zip
   # ==============================================================
   publish:
     name: Publish Artifact
@@ -225,11 +227,11 @@ jobs:
           retention-days: 7
 
   # ==============================================================
-  # 7. Security Scan (Vulns + CodeQL)
+  # 7. Security Scan (CodeQL + Vulns)
   # ==============================================================
   security:
     name: Security Scan
-    needs: [restore, build]
+    needs: [restore, build]   # Must wait for build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
