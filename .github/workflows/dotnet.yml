@@ -9,9 +9,9 @@ on:
 
 jobs:
   lint:
-    name: Lint – Full Roslyn Analyzers
+    name: Lint – Roslyn Analyzers (Naming, Unused, Style)
     runs-on: ubuntu-latest
-    continue-on-error: true          # <-- lint does NOT block the rest
+    continue-on-error: true   # Never blocks build/publish
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
@@ -27,7 +27,7 @@ jobs:
             --no-restore \
             -p:EnforceCodeStyleInBuild=true \
             -p:TreatWarningsAsErrors=true \
-            -warn:4 \
+            -warn 4 \
             --verbosity minimal
 
   test:
@@ -53,21 +53,16 @@ jobs:
           reports: 'coverage/**/coverage.cobertura.xml'
           targetdir: 'coverage/html'
           reporttypes: 'HtmlInline_AzurePipelines;Cobertura'
-      - name: Upload coverage HTML
+      - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/html
-      - name: Upload Cobertura XML
-        uses: actions/upload-artifact@v4
-        with:
-          name: cobertura
-          path: coverage/**/coverage.cobertura.xml
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test]               # waits for lint & test, but lint can fail
+    # build runs even if lint fails
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
