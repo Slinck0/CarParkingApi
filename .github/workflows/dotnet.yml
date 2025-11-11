@@ -120,25 +120,23 @@ jobs:
           echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Find any cobertura file
           FILE=$(find . -path "*/coverage/*.cobertura.xml" | head -n1)
           if [ -z "$FILE" ]; then
-            echo "ERROR: No coverage file found!" >> $GITHUB_STEP_SUMMARY
-            echo "Check: Did tests run? Is Coverlet enabled?" >> $GITHUB_STEP_SUMMARY
+            echo "FAILED: No coverage file found!" >> $GITHUB_STEP_SUMMARY
+            echo "Did tests run? Is Coverlet enabled?" >> $GITHUB_STEP_SUMMARY
+            echo "Check the 'Run unit tests' step." >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          echo "Found coverage file: $FILE" >> $GITHUB_STEP_SUMMARY
+          echo "Found coverage: $FILE" >> $GITHUB_STEP_SUMMARY
 
-          # Extract all line-rate values
           RATES=$(grep -oP '<line-rate>\K[0-9.]+' "$FILE" | tr '\n' ' ')
           if [ -z "$RATES" ]; then
-            echo "ERROR: No coverage data in file!" >> $GITHUB_STEP_SUMMARY
-            echo "Check: Is your code being tested?" >> $GITHUB_STEP_SUMMARY
+            echo "FAILED: Coverage file is empty!" >> $GITHUB_STEP_SUMMARY
+            echo "No code was tested. Add unit tests!" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          # Calculate average
           SUM=0; COUNT=0
           for r in $RATES; do
             SUM=$(echo "$SUM + $r" | bc -l)
@@ -151,8 +149,10 @@ jobs:
           echo "Line coverage: **$PERCENT%** (from $COUNT report(s))" >> $GITHUB_STEP_SUMMARY
 
           if (( $(echo "$PERCENT < 80" | bc -l) )); then
-            echo "FAILED: Coverage is $PERCENT% — must be 80% or higher!" >> $GITHUB_STEP_SUMMARY
+            echo "FAILED: COVERAGE TOO LOW!" >> $GITHUB_STEP_SUMMARY
+            echo "Current: $PERCENT% | Required: 80% or higher" >> $GITHUB_STEP_SUMMARY
             echo "Add more unit tests to reach 80%." >> $GITHUB_STEP_SUMMARY
+            echo "Run locally: dotnet test /p:CollectCoverage=true" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             echo "PASSED: Coverage $PERCENT% ≥ 80%" >> $GITHUB_STEP_SUMMARY
