@@ -3,9 +3,9 @@ name: .NET 9 CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev, CI/CD ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev, CI/CD ]
 
 jobs:
   lint:
