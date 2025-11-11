@@ -38,7 +38,6 @@ V2/Data_json/**
 *.db-shm
 *.db-wal
 **/bin/
-**/obj/
 *.user
 *.suo
  
