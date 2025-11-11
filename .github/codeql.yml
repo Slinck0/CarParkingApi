@@ -1,0 +1,9 @@
+name: "CodeQL Config"
+paths:
+  - 'V2/**'
+paths-ignore:
+  - '**/*.Tests.cs'
+  - '**/obj/**'
+  - '**/bin/**'
+queries:
+  - uses: security-and-quality
