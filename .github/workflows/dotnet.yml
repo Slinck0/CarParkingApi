@@ -1,23 +1,15 @@
-# .github/workflows/ci-cd.yml
-name: CI/CD Pipeline - V2 .NET 9 API
+# .github/workflows/ci-cd.yml   (or rename to dotnet.yml if you prefer)
+name: CI/CD – V2 .NET 9 API
 
 on:
   push:
-    branches:
-      - main
-      - CI/CD
-      - dev
-      - 'release/*'
+    branches: [ main, CI/CD, dev, 'release/*' ]
     paths:
       - 'V2/**'
       - 'Parking-api.sln'
       - '.github/workflows/ci-cd.yml'
   pull_request:
-    branches:
-      - main
-      - CI/CD
-      - dev
-      - 'release/*'
+    branches: [ main, CI/CD, dev, 'release/*' ]
     paths:
       - 'V2/**'
       - 'Parking-api.sln'
@@ -38,80 +30,16 @@ env:
   ARTIFACT_NAME: car-parking-api-v2-${{ github.sha }}.zip
 
 jobs:
-  # ==================================================================
-  # 1. Restore & Cache NuGet Packages
-  # ==================================================================
+  # --------------------------------------------------------------
+  # 1. Restore & cache
+  # --------------------------------------------------------------
   restore:
     name: Restore & Cache
     runs-on: ubuntu-latest
     outputs:
       cache-key: ${{ steps.cache.outputs.cache-key }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Needed for SonarCloud
-
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-          include-prerelease: false
-          cache-dependency-path: ${{ env.SOLUTION_FILE }}
-
-      - name: Cache NuGet packages
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-$$ {{ runner.os }}- $${{ hashFiles('**/packages.lock.json', '${{ env.SOLUTION_FILE }}') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
-      - name: Restore workloads (if any)
-        run: dotnet workload restore ${{ env.SOLUTION_FILE }} --verbosity minimal
-
-      - name: Restore solution
-        run: dotnet restore ${{ env.SOLUTION_FILE }} --locked-mode --verbosity minimal
-
-  # ==================================================================
-  # 2. Lint & Code Formatting
-  # ==================================================================
-  lint:
-    name: Lint & Format
-    needs: restore
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Restore (from cache)
-        run: dotnet restore ${{ env.SOLUTION_FILE }} --no-cache
-
-      - name: Verify code formatting
-        run: |
-          dotnet format ${{ env.SOLUTION_FILE }} \
-            --verify-no-changes \
-            --severity info \
-            --include-generated \
-            || (echo "Code formatting issues found. Run 'dotnet format' locally." && exit 1)
-
-  # ==================================================================
-  # 3. Static Code Analysis (SonarCloud)
-  # ==================================================================
-  analyze:
-    name: Static Analysis (SonarCloud)
-    needs: restore
-    runs-on: ubuntu-latest
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -120,14 +48,58 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+          cache-dependency-path: ${{ env.SOLUTION_FILE }}
 
-      - name: Restore
-        run: dotnet restore ${{ env.SOLUTION_FILE }}
+      - name: Cache NuGet
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', env.SOLUTION_FILE) }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
-      - name: Install SonarScanner
-        run: dotnet tool install --global dotnet-sonarscanner
+      - name: Workload restore
+        run: dotnet workload restore ${{ env.SOLUTION_FILE }} --verbosity minimal
 
-      - name: Begin SonarCloud analysis
+      - name: Restore solution
+        run: dotnet restore ${{ env.SOLUTION_FILE }} --locked-mode --verbosity minimal
+
+  # --------------------------------------------------------------
+  # 2. Lint / format
+  # --------------------------------------------------------------
+  lint:
+    name: Lint & Format
+    needs: restore
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '9.0.x' }
+      - run: dotnet restore ${{ env.SOLUTION_FILE }} --no-cache
+      - name: Verify formatting
+        run: |
+          dotnet format ${{ env.SOLUTION_FILE }} \
+            --verify-no-changes --severity info --include-generated \
+          || (echo "Fix formatting with 'dotnet format' locally" && exit 1)
+
+  # --------------------------------------------------------------
+  # 3. SonarCloud analysis
+  # --------------------------------------------------------------
+  analyze:
+    name: SonarCloud
+    needs: restore
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '9.0.x' }
+      - run: dotnet restore ${{ env.SOLUTION_FILE }}
+      - run: dotnet tool install --global dotnet-sonarscanner
+      - name: Sonar begin
         env:
           SONAR_PROJECT_KEY: ${{ github.repository }}-v2
         run: |
@@ -139,24 +111,17 @@ jobs:
             /d:sonar.cs.opencover.reportsPaths="**/*.coverage.xml" \
             /d:sonar.exclusions="**/V1/**,**/tests/**" \
             /d:sonar.coverage.exclusions="**/*Tests.cs"
-
-      - name: Build for analysis
-        run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore -c Release
-
-      - name: Run tests with coverage (for Sonar)
+      - run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore -c Release
+      - name: Tests for Sonar
         run: |
           dotnet test ${{ env.SOLUTION_FILE }} \
-            --no-build \
-            --collect:"XPlat Code Coverage" \
-            --settings .runsettings \
-            --logger trx
+            --no-build --collect:"XPlat Code Coverage" \
+            --settings .runsettings --logger trx
+      - run: dotnet sonarscanner end /d:sonar.login="${{ env.SONAR_TOKEN }}"
 
-      - name: End SonarCloud analysis
-        run: dotnet sonarscanner end /d:sonar.login="${{ env.SONAR_TOKEN }}"
-
-  # ==================================================================
-  # 4. Unit Tests + Coverage
-  # ==================================================================
+  # --------------------------------------------------------------
+  # 4. Unit tests + coverage
+  # --------------------------------------------------------------
   unit-tests:
     name: Unit Tests
     needs: restore
@@ -165,168 +130,113 @@ jobs:
       matrix:
         dotnet-version: ['9.0.x']
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-
-      - name: Restore
-        run: dotnet restore ${{ env.SOLUTION_FILE }}
-
-      - name: Run unit tests with coverage
-        id: test
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: ${{ matrix.dotnet-version }} }
+      - run: dotnet restore ${{ env.SOLUTION_FILE }}
+      - name: Run tests
         run: |
           dotnet test ${{ env.SOLUTION_FILE }} \
-            --no-restore \
-            --no-build \
-            --configuration Release \
-            --collect:"XPlat Code Coverage" \
-            --logger trx \
+            --no-restore --no-build -c Release \
+            --collect:"XPlat Code Coverage" --logger trx \
             --results-directory ./test-results \
             --filter "FullyQualifiedName!~Integration" \
             /p:CoverletOutputFormat=cobertura \
             /p:CoverletOutput=./coverage/
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
           path: ./test-results/**
-
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: ./coverage/coverage.cobertura.xml
-
-      - name: Codecov upload
-        uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/coverage.cobertura.xml
-          fail_ci_if_error: true
           flags: unittests
           minimum_coverage: 80
 
-  # ==================================================================
-  # 5. Integration Tests (Optional - only if projects exist)
-  # ==================================================================
+  # --------------------------------------------------------------
+  # 5. Integration tests (optional)
+  # --------------------------------------------------------------
   integration-tests:
     name: Integration Tests
     needs: restore
     runs-on: ubuntu-latest
-    if: ${{ contains(github.event.pull_request.title, '[run-integration]') || github.ref == 'refs/heads/main' }}
+    if: >-
+      contains(github.event.pull_request.title, '[run-integration]') ||
+      github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Restore
-        run: dotnet restore ${{ env.SOLUTION_FILE }}
-
-      - name: Run integration tests
-        run: |
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '9.0.x' }
+      - run: dotnet restore ${{ env.SOLUTION_FILE }}
+      - run: |
           dotnet test ${{ env.SOLUTION_FILE }} \
-            --no-restore \
-            --no-build \
-            --configuration Release \
+            --no-restore --no-build -c Release \
             --filter "FullyQualifiedName~Integration" \
             --logger trx
 
-  # ==================================================================
+  # --------------------------------------------------------------
   # 6. Build
-  # ==================================================================
+  # --------------------------------------------------------------
   build:
     name: Build
     needs: [lint, unit-tests]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Restore
-        run: dotnet restore ${{ env.SOLUTION_FILE }}
-
-      - name: Build (Release, warnings as errors)
-        run: |
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '9.0.x' }
+      - run: dotnet restore ${{ env.SOLUTION_FILE }}
+      - run: |
           dotnet build ${{ env.SOLUTION_FILE }} \
-            --no-restore \
-            --configuration Release \
+            --no-restore -c Release \
             /p:TreatWarningsAsErrors=true \
             /p:RuntimeIdentifier=linux-x64
 
-  # ==================================================================
-  # 7. Publish Artifact
-  # ==================================================================
+  # --------------------------------------------------------------
+  # 7. Publish artifact
+  # --------------------------------------------------------------
   publish-artifacts:
     name: Publish Artifact
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Publish API
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '9.0.x' }
+      - name: Publish
         run: |
           dotnet publish ${{ env.PROJECT_PATH }} \
-            --configuration Release \
-            --no-build \
-            --self-contained false \
-            --runtime linux-x64 \
-            --output ${{ env.PUBLISH_DIR }}
-
-      - name: Zip artifact
+            -c Release --no-build --self-contained false \
+            --runtime linux-x64 --output ${{ env.PUBLISH_DIR }}
+      - name: Zip
         run: |
-          cd V2/bin/Release/net9.0/linux-x64/
-          zip -r $$ {{ github.workspace }}/ $${{ env.ARTIFACT_NAME }} .
-        shell: bash
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          cd V2/bin/Release/net9.0/linux-x64
+          zip -r "${{ github.workspace }}/${{ env.ARTIFACT_NAME }}" .
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACT_NAME }}
           retention-days: 7
 
-  # ==================================================================
-  # 8. Security Scan
-  # ==================================================================
+  # --------------------------------------------------------------
+  # 8. Security scan
+  # --------------------------------------------------------------
   security-scan:
-    name: Security & Dependency Scan
+    name: Security Scan
     needs: restore
     runs-on: ubuntu-latest
-    continue-on-error: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Restore
-        run: dotnet restore ${{ env.SOLUTION_FILE }}
-
-      - name: Scan for vulnerable packages
-        id: vuln-scan
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '9.0.x' }
+      - run: dotnet restore ${{ env.SOLUTION_FILE }}
+      - name: Vulnerable packages
+        id: vuln
         run: |
           echo "## Vulnerable Packages" >> $GITHUB_STEP_SUMMARY
           dotnet list ${{ env.PROJECT_PATH }} package --vulnerable --include-transitive > vuln.txt || true
@@ -337,19 +247,15 @@ jobs:
           else
             echo "No critical vulnerabilities found." >> $GITHUB_STEP_SUMMARY
           fi
-
-      - name: CodeQL Analysis
-        uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v3
         with:
           languages: csharp
           config-file: .github/codeql-config.yml
+      - uses: github/codeql-action/analyze@v3
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-
-  # ==================================================================
-  # 9. Preview Deploy (PR only)
-  # ==================================================================
+  # --------------------------------------------------------------
+  # 9. PR preview deploy
+  # --------------------------------------------------------------
   deploy-preview:
     name: Deploy Preview (PR)
     if: github.event_name == 'pull_request'
@@ -357,72 +263,38 @@ jobs:
     runs-on: ubuntu-latest
     environment: preview
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ./artifact
-
-      - name: Deploy to preview (placeholder)
+      - name: Deploy (placeholder)
         run: |
-          echo "Deploying PR #${{ github.event.pull_request.number }} to preview environment..."
-          # Example: Azure App Service, Vercel, etc.
-          # az webapp deploy --resource-group rg-preview --name app-pr-$$ {{ github.event.pull_request.number }} --src-path ./artifact/ $${{ env.ARTIFACT_NAME }}
-
-      - name: Comment PR with preview URL
-        uses: actions/github-script@v7
+          echo "Deploying PR #${{ github.event.pull_request.number }} ..."
+          # az webapp deploy ... (replace with your real command)
+      - uses: actions/github-script@v7
         with:
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Preview deployed: https://preview-${{ github.event.pull_request.number }}.example.com`
+              body: `Preview: https://preview-${{ github.event.pull_request.number }}.example.com`
             })
 
-  # ==================================================================
-  # 10. Outdated Packages (Warning)
-  # ==================================================================
+  # --------------------------------------------------------------
+  # 10. Outdated packages (warning only)
+  # --------------------------------------------------------------
   outdated:
-    name: Warn on Outdated Packages
+    name: Outdated Packages
     needs: restore
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Install dotnet-outdated
-        run: dotnet tool install --global dotnet-outdated-tool
-
-      - name: Check for outdated packages
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '9.0.x' }
+      - run: dotnet tool install --global dotnet-outdated-tool
+      - name: Check
         run: |
           echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
-          dotnet outdated ${{ env.SOLUTION_FILE }} -f text >> $GITHUB_STEP_SUMMARY || echo "No outdated packages."
-
-# ==================================================================
-# Summary
-# ==================================================================
-# This workflow:
-# - Triggers on main & release/* branches
-# - Ignores V1/ and legacy Python tests
-# - Uses caching for speed
-# - Enforces linting, formatting, analysis, tests, coverage >80%
-# - Builds & publishes linux-x64 artifact
-# - Scans for vulnerabilities and uses CodeQL
-# - Deploys PR previews
-# - Notifies on outdated packages
-#
-# Required secrets:
-# - SONAR_TOKEN (SonarCloud)
-# - CODECOV_TOKEN (optional, for coverage)
-#
-# Optional files:
-# - .editorconfig (in root)
-# - .runsettings (for test filtering)
-# - .github/codeql-config.yml
+          dotnet outdated ${{ env.SOLUTION_FILE }} -f text >> $GITHUB_STEP_SUMMARY || echo "None"
