@@ -9,7 +9,7 @@ on:
 
 jobs:
   lint:
-    name: Lint – .NET Analyzers (naming, style, quality)
+    name: Lint – Full Roslyn Analyzers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,22 +19,15 @@ jobs:
           dotnet-version: '9.0.x'
       - name: Restore
         run: dotnet restore V2/V2.csproj
-      - name: Run analyzers (full diagnostics)
-        id: analyzers
-        continue-on-error: true
+      - name: Run Analyzers (warnings as errors)
         run: |
-          dotnet format analyzers V2/V2.csproj \
-            --severity info \
-            --verbosity diagnostic \
-            --diagnostics ALL \
-            || echo "ANALYZERS_FAILED=true" >> $GITHUB_ENV
-      - name: Show analyzer results
-        if: env.ANALYZERS_FAILED == 'true'
-        run: |
-          echo "Analyzers found issues. See details above."
-          exit 1
-      - name: Success message
-        run: echo "All files conform to .NET coding conventions."
+          dotnet build V2/V2.csproj \
+            --configuration Release \
+            --no-restore \
+            /p:EnforceCodeStyleInBuild=true \
+            /p:TreatWarningsAsErrors=true \
+            /warn:4 \
+            --verbosity minimal
 
   test:
     name: Test + Coverage
@@ -73,6 +66,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
@@ -89,8 +83,8 @@ jobs:
           -p:ContinuousIntegrationBuild=true
           -p:UseAppHost=false
 
-  publish:
-    name: Publish Artifact
+  publish-windows:
+    name: Publish → Windows
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -99,24 +93,50 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-      - name: Publish (self-contained, no static-web-assets)
+      - name: Publish Windows
         run: |
           dotnet publish V2/V2.csproj \
             --configuration Release \
+            --runtime win-x64 \
             --self-contained false \
-            --runtime linux-x64 \
-            --output ./publish \
-            -p:UseAppHost=false \
-            -p:IncludeAllContentForSelfExtract=true \
-            -p:GenerateRuntimeConfigurationFiles=true \
+            --output ./publish-windows \
+            -p:UseAppHost=true \
             /p:SuppressStaticWebAssets=true
-      - name: Zip the publish folder
+      - name: Zip Windows artifact
         run: |
-          cd publish
-          zip -r ../CarParkingApi-V2-${{ github.sha }}.zip .
-          cd ..
-      - name: Upload artifact
+          cd publish-windows
+          zip -r ../CarParkingApi-V2-windows-${{ github.sha }}.zip .
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: publish-CarParkingApi-V2
-          path: CarParkingApi-V2-${{ github.sha }}.zip
+          name: CarParkingApi-V2-windows
+          path: CarParkingApi-V2-windows-${{ github.sha }}.zip
+
+  publish-linux:
+    name: Publish → Linux
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Publish Linux
+        run: |
+          dotnet publish V2/V2.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            --self-contained false \
+            --output ./publish-linux \
+            -p:UseAppHost=false \
+            /p:SuppressStaticWebAssets=true
+      - name: Zip Linux artifact
+        run: |
+          cd publish-linux
+          zip -r ../CarParkingApi-V2-linux-${{ github.sha }}.zip .
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarParkingApi-V2-linux
+          path: CarParkingApi-V2-linux-${{ github.sha }}.zip
