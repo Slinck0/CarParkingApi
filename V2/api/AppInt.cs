@@ -17,11 +17,11 @@ public static class AppInt
  
  
  
-        var lotsPath = "parking-lots.json";
-        var reservationsPath = "reservations.json";
-        var usersPath = "users.json";
-        var vehiclesPath = "vehicles.json";
-        var paymentsPath = "payments.json";
+        var lotsPath = "Data_json/parking-lots.json";
+        var reservationsPath = "Data_json/reservations.json";
+        var usersPath = "Data_json/users.json";
+        var vehiclesPath = "Data_json/vehicles.json";
+        var paymentsPath = "Data_json/payments.json";
  
         if (File.Exists(usersPath))
             await UsersImporter.ImportAsync(db, usersPath);

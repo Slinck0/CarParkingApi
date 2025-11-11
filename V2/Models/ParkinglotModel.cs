@@ -9,7 +9,7 @@ public class ParkingLot
     public int Capacity { get; set; }
     public int Reserved { get; set; }
     public decimal Tariff { get; set; }
-    public decimal DayTariff { get; set; }
+    public decimal? DayTariff { get; set; }
     public DateOnly CreatedAt { get; set; }
     public double Lat { get; set; }
     public double Lng { get; set; }

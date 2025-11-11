@@ -26,8 +26,5 @@
   </ItemGroup>
 
 
-  <ItemGroup>
-    <None Include="parking-lots.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="reservations.json" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
+  
 </Project>

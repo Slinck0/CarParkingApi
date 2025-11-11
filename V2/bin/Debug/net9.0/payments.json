@@ -1,0 +1,14 @@
+[
+    {
+        "transaction": "tx-001",
+        "amount": 15.0,
+        "initiator": "Olivier",
+        "created_at": "15-09-2025 11:18:12",
+        "completed": "15-09-2025 11:22:49",
+        "hash": "89864874-2eb9-4b4c-8050-fac0d6d58f8f",
+        "t_data": {
+            "provider": "ideal",
+            "ref": "ABC123"
+        }
+    }
+]

@@ -4,8 +4,6 @@
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/obj/Debug/net9.0/V2.AssemblyInfo.cs
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/obj/Debug/net9.0/V2.csproj.CoreCompileInputs.cache
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/obj/Debug/net9.0/V2.sourcelink.json
-/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/parking-lots.json
-/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/reservations.json
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/V2
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Humanizer.dll
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.Bcl.AsyncInterfaces.dll
@@ -166,6 +164,12 @@
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Tokens.dll
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/System.IdentityModel.Tokens.Jwt.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/parking-lots.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/reservations.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/users.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/vehicles.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/payments.json
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/appsettings.json
-/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/bad-reservations.json
-/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/vehicles.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/bad-reservations.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/bad-vehicles.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Data_json/users copy.json
