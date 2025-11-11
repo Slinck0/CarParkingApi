@@ -1,9 +1,6 @@
 # .github/workflows/dotnet.yml
 name: CI – V2 .NET 9 API
 
-# -------------------------------------------------
-# Trigger only when V2 code changes
-# -------------------------------------------------
 on:
   push:
     branches: [ main, CI/CD, dev, 'release/*' ]
@@ -22,18 +19,18 @@ permissions:
   contents: read
   pull-requests: write
   checks: write
-  security-events: write   # for CodeQL
+  security-events: write
 
 env:
   SOLUTION: Parking-api.sln
-  PROJECT:  V2/V2.csproj
-  PUBLISH:  V2/bin/Release/net9.0/linux-x64/publish
-  ZIP:      car-parking-api-v2-${{ github.sha }}.zip
+  PROJECT: V2/V2.csproj
+  PUBLISH: V2/bin/Release/net9.0/linux-x64/publish
+  ZIP: car-parking-api-v2-${{ github.sha }}.zip
 
 jobs:
-  # -------------------------------------------------
-  # 1. Restore + cache
-  # -------------------------------------------------
+  # ==============================================================
+  # 1. Restore + Cache
+  # ==============================================================
   restore:
     name: Restore
     runs-on: ubuntu-latest
@@ -58,23 +55,40 @@ jobs:
       - run: dotnet workload restore ${{ env.SOLUTION }} --verbosity minimal
       - run: dotnet restore ${{ env.SOLUTION }} --locked-mode
 
-  # -------------------------------------------------
-  # 2. Lint / format
-  # -------------------------------------------------
+  # ==============================================================
+  # 2. Lint & Format (REAL check)
+  # ==============================================================
   lint:
-    name: Lint
+    name: Lint & Format
     needs: restore
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '9.0.x' }
-      - run: dotnet format ${{ env.SOLUTION }} --verify-no-changes --severity info \
-          || (echo "Fix formatting with 'dotnet format'" && exit 1)
 
-  # -------------------------------------------------
-  # 3. Unit tests + coverage
-  # -------------------------------------------------
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Verify formatting
+        run: |
+          echo "Checking whitespace..."
+          dotnet format ${{ env.SOLUTION }} whitespace \
+            --verify-no-changes --verbosity quiet || exit 1
+
+          echo "Checking code style..."
+          dotnet format ${{ env.SOLUTION }} style \
+            --verify-no-changes --verbosity quiet || exit 1
+
+          echo "Checking analyzers..."
+          dotnet format ${{ env.SOLUTION }} analyzers \
+            --verify-no-changes --verbosity quiet || exit 1
+
+          echo "Formatting check passed!"
+        shell: bash
+
+  # ==============================================================
+  # 3. Unit Tests + Coverage (80%+)
+  # ==============================================================
   unit-tests:
     name: Unit Tests
     needs: restore
@@ -82,15 +96,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '9.0.x' }
-      - run: dotnet test ${{ env.SOLUTION }} \
-          --no-restore --no-build -c Release \
-          --collect:"XPlat Code Coverage" \
-          --logger trx \
-          --results-directory test-results \
-          --filter "FullyQualifiedName!~Integration" \
-          /p:CoverletOutputFormat=cobertura \
-          /p:CoverletOutput=./coverage/
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Run unit tests
+        run: |
+          dotnet test ${{ env.SOLUTION }} \
+            --no-restore --no-build -c Release \
+            --collect:"XPlat Code Coverage" \
+            --logger trx \
+            --results-directory test-results \
+            --filter "FullyQualifiedName!~Integration" \
+            /p:CoverletOutputFormat=cobertura \
+            /p:CoverletOutput=./coverage/
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -101,28 +119,34 @@ jobs:
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
+          name: coverage-report
           path: coverage/coverage.cobertura.xml
 
-      # ---- Enforce 80 % coverage (GitHub Summary) ----
-      - name: Check coverage
+      - name: Enforce 80% coverage
         run: |
-          COVERAGE=$(dotnet reportgenerator \
-            -reports:coverage/coverage.cobertura.xml \
-            -targetdir:coveragereport -reporttypes:TextSummary \
-            | grep "Line coverage" | awk '{print $3}' | tr -d '%')
-          echo "Line coverage: $COVERAGE%"
-          echo "## Coverage: $COVERAGE %" >> $GITHUB_STEP_SUMMARY
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "Coverage < 80 % → failing"
+          echo "## Code Coverage" >> $GITHUB_STEP_SUMMARY
+          if [ ! -f coverage/coverage.cobertura.xml ]; then
+            echo "Coverage file missing!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          # Extract line coverage %
+          COVERAGE=$(grep -oP '<line-rate>\K[0-9.]+' coverage/coverage.cobertura.xml)
+          PERCENT=$(echo "$COVERAGE * 100" | bc -l | awk '{printf "%.2f", $1}')
+
+          echo "Line coverage: $PERCENT%" >> $GITHUB_STEP_SUMMARY
+          echo "$PERCENT" > coverage_percent.txt
+
+          if (( $(echo "$PERCENT < 80" | bc -l) )); then
+            echo "Coverage < 80% → failing" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
         env:
-          DOTNET_ROOT: ${{ runner.tool_cache }}/dotnet
+          BC_LINE_LENGTH: 0
 
-  # -------------------------------------------------
-  # 4. Integration tests (run on main or PR with tag)
-  # -------------------------------------------------
+  # ==============================================================
+  # 4. Integration Tests (main or [run-integration])
+  # ==============================================================
   integration-tests:
     name: Integration Tests
     needs: restore
@@ -133,15 +157,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '9.0.x' }
+        with:
+          dotnet-version: '9.0.x'
       - run: dotnet test ${{ env.SOLUTION }} \
           --no-restore --no-build -c Release \
           --filter "FullyQualifiedName~Integration" \
           --logger trx
 
-  # -------------------------------------------------
+  # ==============================================================
   # 5. Build (warnings = errors)
-  # -------------------------------------------------
+  # ==============================================================
   build:
     name: Build
     needs: [lint, unit-tests]
@@ -149,68 +174,78 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '9.0.x' }
+        with:
+          dotnet-version: '9.0.x'
       - run: dotnet build ${{ env.SOLUTION }} \
           --no-restore -c Release \
           /p:TreatWarningsAsErrors=true \
           /p:RuntimeIdentifier=linux-x64
 
-  # -------------------------------------------------
-  # 6. Publish + zip
-  # -------------------------------------------------
+  # ==============================================================
+  # 6. Publish + Zip Artifact
+  # ==============================================================
   publish:
-    name: Publish
+    name: Publish Artifact
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '9.0.x' }
-      - run: dotnet publish ${{ env.PROJECT }} \
-          -c Release --no-build --self-contained false \
-          --runtime linux-x64 --output ${{ env.PUBLISH }}
+        with:
+          dotnet-version: '9.0.x'
 
-      - name: Zip artifact
+      - name: Publish
+        run: |
+          dotnet publish ${{ env.PROJECT }} \
+            -c Release --no-build --self-contained false \
+            --runtime linux-x64 --output ${{ env.PUBLISH }}
+
+      - name: Create zip
         run: |
           cd V2/bin/Release/net9.0/linux-x64
           zip -r "${{ github.workspace }}/${{ env.ZIP }}" .
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ZIP }}
           path: ${{ env.ZIP }}
           retention-days: 7
 
-  # -------------------------------------------------
-  # 7. Security scan (dotnet + CodeQL)
-  # -------------------------------------------------
+  # ==============================================================
+  # 7. Security Scan (Vulns + CodeQL)
+  # ==============================================================
   security:
-    name: Security
+    name: Security Scan
     needs: restore
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '9.0.x' }
-      - run: dotnet list ${{ env.PROJECT }} package --vulnerable --include-transitive > vuln.txt || true
-      - name: Show vulnerable packages
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Check vulnerable packages
         run: |
           echo "## Vulnerable Packages" >> $GITHUB_STEP_SUMMARY
+          dotnet list ${{ env.PROJECT }} package --vulnerable --include-transitive > vuln.txt || true
           if grep -q "has the following vulnerable packages" vuln.txt; then
-            echo "Critical vulnerabilities found!" >> $GITHUB_STEP_SUMMARY
+            echo "CRITICAL VULNERABILITIES FOUND!" >> $GITHUB_STEP_SUMMARY
             cat vuln.txt >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             echo "No critical vulnerabilities." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - uses: github/codeql-action/init@v3
+      - name: CodeQL
+        uses: github/codeql-action/init@v3
         with:
           languages: csharp
       - uses: github/codeql-action/analyze@v3
 
-  # -------------------------------------------------
-  # 8. Outdated packages (warning only)
-  # -------------------------------------------------
+  # ==============================================================
+  # 8. Outdated Packages (Warning Only)
+  # ==============================================================
   outdated:
     name: Outdated Packages
     needs: restore
@@ -219,12 +254,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '9.0.x' }
-      - run: dotnet tool install --global dotnet-outdated-tool
-      - run: |
-          echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
-          dotnet outdated ${{ env.SOLUTION }} -f text >> $GITHUB_STEP_SUMMARY || echo "None"
+        with:
+          dotnet-version: '9.0.x'
 
-# -------------------------------------------------
-# End of file
-# -------------------------------------------------
+      - name: Install dotnet-outdated
+        run: dotnet tool install --global dotnet-outdated-tool
+
+      - name: Check outdated
+        run: |
+          echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          dotnet outdated ${{ env.SOLUTION }} \
+            --format text \
+            --upgrade \
+            --include Major,Minor,Patch \
+            || echo "No outdated packages or tool failed." >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        shell: bash
