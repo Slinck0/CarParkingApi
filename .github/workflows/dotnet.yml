@@ -9,9 +9,9 @@ on:
 
 jobs:
   lint:
-    name: Lint – Roslyn Analyzers (Naming, Unused, Style)
+    name: Lint – Full Roslyn Analyzers
     runs-on: ubuntu-latest
-    continue-on-error: true   # Never blocks build/publish
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
@@ -20,14 +20,13 @@ jobs:
           dotnet-version: '9.0.x'
       - name: Restore
         run: dotnet restore V2/V2.csproj
-      - name: Run Analyzers (warnings as errors)
+      - name: Run Analyzers – Treat ALL warnings as errors
         run: |
           dotnet build V2/V2.csproj \
             --configuration Release \
             --no-restore \
             -p:EnforceCodeStyleInBuild=true \
             -p:TreatWarningsAsErrors=true \
-            -warn 4 \
             --verbosity minimal
 
   test:
@@ -62,7 +61,6 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    # build runs even if lint fails
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
@@ -76,8 +74,7 @@ jobs:
           dotnet build V2/V2.csproj \
             --configuration Release \
             --no-restore \
-            -p:ContinuousIntegrationBuild=true \
-            -p:UseAppHost=false
+            -p:ContinuousIntegrationBuild=true
 
   publish-windows:
     name: Publish → Windows
@@ -100,8 +97,7 @@ jobs:
             /p:SuppressStaticWebAssets=true
       - name: Zip Windows
         run: |
-          cd publish-windows
-          zip -r ../CarParkingApi-V2-windows-${{ github.sha }}.zip .
+          cd publish-windows && zip -r ../CarParkingApi-V2-windows-${{ github.sha }}.zip .
       - name: Upload Windows
         uses: actions/upload-artifact@v4
         with:
@@ -129,8 +125,7 @@ jobs:
             /p:SuppressStaticWebAssets=true
       - name: Zip Linux
         run: |
-          cd publish-linux
-          zip -r ../CarParkingApi-V2-linux-${{ github.sha }}.zip .
+          cd publish-linux && zip -r ../CarParkingApi-V2-linux-${{ github.sha }}.zip .
       - name: Upload Linux
         uses: actions/upload-artifact@v4
         with:
