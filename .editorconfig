@@ -1,11 +1,44 @@
+# .editorconfig
 root = true
 
-[*]
-indent_style = space
-indent_size = 4
-end_of_line = lf
-trim_trailing_whitespace = true
-insert_final_newline = true
-
 [*.cs]
-charset = utf-8
+
+# ---------- NAMING ----------
+# Locals / parameters → camelCase
+dotnet_naming_rule.locals_camel_case.severity = error
+dotnet_naming_rule.locals_camel_case.symbols   = locals_parameters
+dotnet_naming_rule.locals_camel_case.style    = camel_case_style
+
+# Private fields → _camelCase
+dotnet_naming_rule.private_fields_underscore.severity = error
+dotnet_naming_rule.private_fields_underscore.symbols   = private_fields
+dotnet_naming_rule.private_fields_underscore.style    = underscore_camel_case_style
+
+# Public members (methods, properties, events) → PascalCase
+dotnet_naming_rule.public_members_pascal.severity = error
+dotnet_naming_rule.public_members_pascal.symbols   = public_members
+dotnet_naming_rule.public_members_pascal.style    = pascal_case_style
+
+# ---------- STYLES ----------
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case_style.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case_style.required_prefix = _
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# ---------- SYMBOL GROUPS ----------
+dotnet_naming_symbols.locals_parameters.applicable_kinds = local,parameter
+dotnet_naming_symbols.locals_parameters.applicable_accessibilities = *
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private,internal,private_protected
+
+dotnet_naming_symbols.public_members.applicable_kinds = method,property,event
+dotnet_naming_symbols.public_members.applicable_accessibilities = public,protected,protected_internal
+
+# ---------- UNUSED ----------
+dotnet_diagnostic.CS0219.severity = error   # assigned but never used
+dotnet_diagnostic.IDE0051.severity = error   # private member never used
+dotnet_diagnostic.IDE0052.severity = error   # readonly private never read
+
+# ---------- OTHER STYLE ----------
+dotnet_diagnostic.IDE0040.severity = error   # add accessibility modifiers
