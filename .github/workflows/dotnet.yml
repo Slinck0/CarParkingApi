@@ -229,7 +229,7 @@ jobs:
   # ==============================================================
   security:
     name: Security Scan
-    needs: restore
+    needs: [restore, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -249,11 +249,14 @@ jobs:
             echo "No critical vulnerabilities." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: CodeQL
+      - name: CodeQL Init
         uses: github/codeql-action/init@v3
         with:
           languages: csharp
-      - uses: github/codeql-action/analyze@v3
+          config-file: .github/codeql.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
 
   # ==============================================================
   # 8. Outdated Packages (Warning Only)
