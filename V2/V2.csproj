@@ -25,6 +25,7 @@
   </None>
   </ItemGroup>
 
-
-  
+  <ItemGroup>
+    <Folder Include="Data_json\" />
+  </ItemGroup>
 </Project>
