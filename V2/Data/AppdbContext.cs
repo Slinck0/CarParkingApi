@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    
 
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}

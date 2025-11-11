@@ -31,36 +31,13 @@ __pycache__/
 # Negeer ALLE data onder V1/api/data (alle subfolders)
 V1/api/data/**
 V1/api/Process/** 
+V2/Data_json/** 
 
 # SQLite databases
 *.db
 *.db-shm
 *.db-wal
-V2/obj/Debug/net9.0/V2.AssemblyInfoInputs.cache
-V2/bin/Debug/net9.0/V2.pdb
-V2/bin/Debug/net9.0/V2.exe
-V2/bin/Debug/net9.0/V2.dll
-V2/bin/Debug/net9.0/V2.deps.json
-V2/obj/project.assets.json
-V2/obj/project.nuget.cache
-V2/obj/V2.csproj.nuget.dgspec.json
-V2/obj/V2.csproj.nuget.g.props
-V2/obj/V2.csproj.nuget.g.targets
-V2/obj/Debug/net9.0/apphost.exe
-V2/obj/Debug/net9.0/rjsmcshtml.dswa.cache.json
-V2/obj/Debug/net9.0/rjsmrazor.dswa.cache.json
-V2/obj/Debug/net9.0/rpswa.dswa.cache.json
-V2/obj/Debug/net9.0/V2.AssemblyInfo.cs
-V2/obj/Debug/net9.0/V2.assets.cache
-V2/obj/Debug/net9.0/V2.csproj.AssemblyReference.cache
-V2/obj/Debug/net9.0/V2.csproj.CoreCompileInputs.cache
-V2/obj/Debug/net9.0/V2.csproj.FileListAbsolute.txt
-V2/obj/Debug/net9.0/V2.dll
-V2/obj/Debug/net9.0/V2.GeneratedMSBuildEditorConfig.editorconfig
-V2/obj/Debug/net9.0/V2.genruntimeconfig.cache
-V2/obj/Debug/net9.0/V2.pdb
-V2/obj/Debug/net9.0/ref/V2.dll
-V2/obj/Debug/net9.0/V2.sourcelink.json
-V2/obj/Debug/net9.0/refint/V2.dll
-V2/obj/Debug/net9.0/V2.AssemblyInfo.cs
-V2/obj/Debug/net9.0/V2.AssemblyInfoInputs.cache
+**/bin/
+*.user
+*.suo
+ 
