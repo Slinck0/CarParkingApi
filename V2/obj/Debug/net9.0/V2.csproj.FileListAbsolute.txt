@@ -158,3 +158,14 @@
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerGen.dll
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerUI.dll
 /Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/obj/Debug/net9.0/V2.MvcApplicationPartsAssemblyInfo.cs
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Abstractions.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Logging.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/Microsoft.IdentityModel.Tokens.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/System.IdentityModel.Tokens.Jwt.dll
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/appsettings.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/bad-reservations.json
+/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/bin/Debug/net9.0/vehicles.json
