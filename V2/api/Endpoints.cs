@@ -1,67 +1,84 @@
-using System.Data.Common;
-using System.Security.Principal;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.EntityFrameworkCore;
 using ParkingImporter.Data;
 using ParkingImporter.Models;
 using ParkingApi.Services;
 namespace ParkingApi.Endpoints;
+
 public static class Endpoints
 {
     public static void MapEndpoints( this WebApplication app)
     {
         app.MapGet("/Health", () => "Parking API is running...");
 
-        app.MapPost("/register", (RegisterUserRequest req, AppDbContext db) =>
-        {
-            if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password) || string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.PhoneNumber) || req.BirthYear <= 0)
-            {
-                return Results.BadRequest("Bad request:/nUsername, Password, Name, PhoneNumber, Email and BirthYear are required.");
-            }
-            if (!req.Email.Contains("@") || !req.Email.Contains("."))
-            {
-                return Results.BadRequest("Bad request:/nInvalid email format.");
-            }
+        // app.MapPost("/register", (RegisterUserRequest req, AppDbContext db) =>
+        // {
+        //     if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password) || string.IsNullOrWhiteSpace(req.Name) || string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.PhoneNumber) || req.BirthYear <= 0)
+        //     {
+        //         return Results.BadRequest("Bad request:/nUsername, Password, Name, PhoneNumber, Email and BirthYear are required.");
+        //     }
+        //     if (!req.Email.Contains("@") || !req.Email.Contains("."))
+        //     {
+        //         return Results.BadRequest("Bad request:/nInvalid email format.");
+        //     }
   
-            var exist = db.Users.Any(u => u.Username == req.Username || u.Email == req.Email);
-            if (exist)
-            {   
-                return Results.Conflict("Bad request:/nUsername or Email already exists.");
-            }
-            var user = new ParkingImporter.Models.User
-            {
-                Username = req.Username,
-                Password = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                Email = req.Email,
-                Name = req.Name,
-                Phone = req.PhoneNumber,
-                BirthYear = req.BirthYear,
-                CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow)
-            };
+        //     var exist = db.Users.Any(u => u.Username == req.Username || u.Email == req.Email);
+        //     if (exist)
+        //     {   
+        //         return Results.Conflict("Bad request:/nUsername or Email already exists.");
+        //     }
+        //     var user = new ParkingImporter.Models.User
+        //     {
+        //         Username = req.Username,
+        //         Password = BCrypt.Net.BCrypt.HashPassword(req.Password),
+        //         Email = req.Email,
+        //         Name = req.Name,
+        //         Phone = req.PhoneNumber,
+        //         BirthYear = req.BirthYear,
+        //         CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow)
+        //     };
 
-            db.Users.Add(user);
-            db.SaveChanges();
-            return Results.Created($"/users/{user.Id}", new { user.Id, user.Username, user.Email });
-        });
+        //     db.Users.Add(user);
+        //     db.SaveChanges();
+        //     return Results.Created($"/users/{user.Id}", new { user.Id, user.Username, user.Email });
+        // });
 
-        app.MapPost("/login", async (LoginRequest req, AppDbContext db, TokenService token) =>
+        // app.MapPost("/login", async (LoginRequest req, AppDbContext db, TokenService token) =>
+        // {
+        //     if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
+        //     {
+        //         return Results.BadRequest("Bad request:/nUsername and Password are required.");
+        //     }
+        //     var user = db.Users.FirstOrDefault(u => u.Username == req.Username);
+        //     if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.Password))
+        //     {
+        //         return Results.Unauthorized();
+        //     }
+
+        //     var jwt = token.CreateToken(user);
+        //     return Results.Ok(new
+        //     {
+        //         token = jwt,
+        //         user = new UserResponse(user.Id, user.Username, user.Role.ToString())
+        //     });
+        // });
+        app.MapGet("/", () => "Hello Parking!");
+
+        // ✅ Add Vehicle endpoint
+        app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
         {
-            if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
-            {
-                return Results.BadRequest("Bad request:/nUsername and Password are required.");
-            }
-            var user = db.Users.FirstOrDefault(u => u.Username == req.Username);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.Password))
-            {
-                return Results.Unauthorized();
-            }
+            if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
+                return Results.BadRequest("License plate is required.");
 
-            var jwt = token.CreateToken(user);
-            return Results.Ok(new
-            {
-                token = jwt,
-                user = new UserResponse(user.Id, user.Username, user.Role.ToString())
-            });
-        });
+            // Optional: prevent duplicates
+            if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
+                return Results.Conflict("A vehicle with this license plate already exists.");
+
+            db.Vehicles.Add(vehicle);
+            await db.SaveChangesAsync();
+
+            return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
+        })
+        .WithName("CreateVehicle")       // Name used by Swagger
+        .WithTags("Vehicles");           // Group in Swagger UI
     }
 }
