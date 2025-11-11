@@ -13,70 +13,57 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
       - name: Restore
         run: dotnet restore V2/V2.csproj
-
       - name: Run analyzers (full diagnostics)
         id: analyzers
-        continue-on-error: true               # let us capture output even if it fails
+        continue-on-error: true
         run: |
           dotnet format analyzers V2/V2.csproj \
             --severity info \
             --verbosity diagnostic \
             --diagnostics ALL \
             || echo "ANALYZERS_FAILED=true" >> $GITHUB_ENV
-
       - name: Show analyzer results
         if: env.ANALYZERS_FAILED == 'true'
         run: |
           echo "Analyzers found issues. See details above."
           exit 1
-
-      - name: Fail explicitly if any diagnostic was emitted
-        run: |
-          echo "All files conform to .NET coding conventions."
-          exit 0
+      - name: Success message
+        run: echo "All files conform to .NET coding conventions."
 
   test:
     name: Test + Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
       - name: Restore
         run: dotnet restore V2/V2.csproj
-
       - name: Run tests with coverage
         run: |
           dotnet test V2/V2.csproj \
             --collect:"XPlat Code Coverage" \
             --results-directory:./coverage \
             --verbosity normal
-
       - name: Generate HTML report
         uses: danielpalme/ReportGenerator-GitHub-Action@v5
         with:
           reports: 'coverage/**/coverage.cobertura.xml'
           targetdir: 'coverage/html'
           reporttypes: 'HtmlInline_AzurePipelines;Cobertura'
-
       - name: Upload coverage HTML
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/html
-
       - name: Upload Cobertura XML
         uses: actions/upload-artifact@v4
         with:
@@ -88,17 +75,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
       - name: Restore
         run: dotnet restore V2/V2.csproj
-
       - name: Build Release
-        run: dotnet build V2/V2.csproj --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+        run: >
+          dotnet build V2/V2.csproj
+          --configuration Release
+          --no-restore
+          -p:ContinuousIntegrationBuild=true
+          -p:UseAppHost=false
 
   publish:
     name: Publish Artifact
@@ -106,29 +95,27 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
-      - name: Restore
-        run: dotnet restore V2/V2.csproj
-
-      - name: Publish
+      - name: Publish (self-contained, no static-web-assets)
         run: |
           dotnet publish V2/V2.csproj \
             --configuration Release \
-            --no-build \
-            --output ./publish
-
-      - name: Zip artifact
+            --self-contained false \
+            --runtime linux-x64 \
+            --output ./publish \
+            -p:UseAppHost=false \
+            -p:IncludeAllContentForSelfExtract=true \
+            -p:GenerateRuntimeConfigurationFiles=true \
+            /p:SuppressStaticWebAssets=true
+      - name: Zip the publish folder
         run: |
           cd publish
           zip -r ../CarParkingApi-V2-${{ github.sha }}.zip .
           cd ..
-
-      - name: Upload publish artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: publish-CarParkingApi-V2
