@@ -13,8 +13,6 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        int LoSeRTesT_unUseD = 0;
-
         var emp_lam = () => Console.WriteLine("lol");
 
         
