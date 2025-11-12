@@ -7,33 +7,11 @@ on:
 
 jobs:            
   test:
-    name: Test + Coverage
+    name: Unit Testing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-      - name: Restore
-        run: dotnet restore V2/V2.csproj
-      - name: Run tests with coverage
-        run: |
-          dotnet test V2/V2.csproj \
-            --collect:"XPlat Code Coverage" \
-            --results-directory:./coverage \
-            --verbosity normal
-      - name: Generate HTML report
-        uses: danielpalme/ReportGenerator-GitHub-Action@v5
-        with:
-          reports: 'coverage/**/coverage.cobertura.xml'
-          targetdir: 'coverage/html'
-          reporttypes: 'HtmlInline_AzurePipelines;Cobertura'
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/html
+      - uses: actions/checkout@v2.1.0
+      - run: dotnet test
 
   lint:
     name: Lint
