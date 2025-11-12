@@ -19,19 +19,15 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore original project (to get analyzers)
+      - name: Restore original project (for analyzers)
         run: dotnet restore V2/V2.csproj
 
-      - name: Extract PackageReferences from V2.csproj
-        id: packages
+      - name: Copy .cs files to /tmp/V2
         run: |
-          PACKAGES=$(grep -oP '<PackageReference Include="\K[^"]+' V2/V2.csproj | sort -u)
-          VERSIONS=$(grep -oP '<PackageReference Include="[^"]+" Version="\K[^"]+' V2/V2.csproj)
-          echo "packages<<EOF" >> $GITHUB_OUTPUT
-          paste -d ';' <(echo "$PACKAGES") <(echo "$VERSIONS") | sed 's/^/    <PackageReference Include="/; s/;/\" Version=\"/; s/$/\"\/>/' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          mkdir -p /tmp/V2
+          find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' -exec cp --parents {} /tmp/ \;
 
-      - name: Create temporary lint project with packages
+      - name: Create temporary lint project
         run: |
           cat > /tmp/lint.csproj <<'EOF'
           <Project Sdk="Microsoft.NET.Sdk">
@@ -47,20 +43,16 @@ jobs:
             <ItemGroup>
           EOF
 
-          # Add PackageReferences
-          echo '${{ steps.packages.outputs.packages }}' >> /tmp/lint.csproj
+          # Add all .cs files from /tmp/V2
+          find /tmp/V2 -name '*.cs' ! -name '*.csproj' | sort | sed 's|/tmp/||; s/^/      <Compile Include="/; s/$/" \/>/' >> /tmp/lint.csproj
 
-          # Add Compile items
-          echo "    </ItemGroup>" >> /tmp/lint.csproj
-          echo "    <ItemGroup>" >> /tmp/lint.csproj
-          find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' | sort | sed 's/^/      <Compile Include="/; s/$/"\/>/' >> /tmp/lint.csproj
           echo "    </ItemGroup>" >> /tmp/lint.csproj
           echo "</Project>" >> /tmp/lint.csproj
 
-      - name: Restore temp lint project
+      - name: Restore temp project
         run: dotnet restore /tmp/lint.csproj
 
-      - name: Run Analyzers on .cs files only
+      - name: Run Analyzers
         run: |
           dotnet build /tmp/lint.csproj \
             --configuration Release \
