@@ -4,15 +4,13 @@ on:
     branches: [ main, dev, CI/CD ]
   pull_request:
     branches: [ main, dev, CI/CD ]
-
-jobs:            
+jobs:
   test:
     name: Unit Testing
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2.1.0
       - run: dotnet test
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -26,21 +24,18 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-
       - name: Super-Linter (single-linter mode)
         uses: super-linter/super-linter@v8.2.1
         env:
           SAVE_SUPER_LINTER_OUTPUT: true
+          SUPER_LINTER_OUTPUT_DIRECTORY_NAME: super-linter-output
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
           VALIDATE_CSHARP: true
           VALIDATE_JSON: true
           VALIDATE_YAML: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_GITHUB_ACTIONS: true
-
           CREATE_SUMMARY: true
-
           VALIDATE_PYTHON: false
           VALIDATE_PYTHON_BLACK: false
           VALIDATE_PYTHON_FLAKE8: false
@@ -49,7 +44,6 @@ jobs:
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_PYTHON_RUFF: false
           VALIDATE_PYTHON_RUFF_FORMAT: false
-
           VALIDATE_JAVASCRIPT_ES: false
           VALIDATE_JAVASCRIPT_PRETTIER: false
           VALIDATE_TYPESCRIPT_ES: false
@@ -57,31 +51,26 @@ jobs:
           VALIDATE_JSX: false
           VALIDATE_TSX: false
           VALIDATE_VUE: false
-
           # Biome (conflicts with Prettier/ESLint)
           VALIDATE_BIOME_FORMAT: false
           VALIDATE_BIOME_LINT: false
-          
+         
           VALIDATE_CSS: false
           VALIDATE_CSS_PRETTIER: false
-          
+         
           VALIDATE_HTML: false
           VALIDATE_MARKDOWN: false
-
           # Secrets / IaC / etc.
           VALIDATE_GITLEAKS: true
           VALIDATE_CHECKOV: true
-          
-      - name: Upload Super-Linter raw logs
+         
+      - name: Upload Super-Linter logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: super-linter-logs
-          path: |
-            /tmp/super-linter-*.log
-            /tmp/linter-*.txt
+          path: super-linter-output/
           retention-days: 7
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -99,7 +88,6 @@ jobs:
             --configuration Release \
             --no-restore \
             -p:ContinuousIntegrationBuild=true
-
   publish-windows:
     name: Publish to Windows
     runs-on: ubuntu-latest
@@ -127,7 +115,6 @@ jobs:
         with:
           name: CarParkingApi-V2-windows
           path: CarParkingApi-V2-windows-${{ github.sha }}.zip
-
   publish-linux:
     name: Publish to Linux
     runs-on: ubuntu-latest
