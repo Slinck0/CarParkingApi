@@ -19,18 +19,22 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Run Analyzers on .cs files
+      - name: Run Analyzers Only (No Format, No Fix)
         run: |
           FILES=$(find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' | tr '\n' ' ')
           if [ -z "$FILES" ]; then
             echo "No .cs files found in V2/ – skipping lint"
             exit 0
           fi
+          
+          # Run ONLY analyzers, NO formatting, NO fixes
           dotnet format analyzers V2 \
             --include $FILES \
             --severity info \
-            --verbosity diagnostic
-
+            --no-restore \
+            --verbosity diagnostic \
+            --diagnostics-all
+            
   test:
     name: Test + Coverage
     runs-on: ubuntu-latest
