@@ -58,6 +58,8 @@ jobs:
       - name: Super-linter
         uses: super-linter/super-linter@v8.2.1 # x-release-please-version
         env:
+          LOG_LEVEL: DEBUG  # More details
+          SAVE_SUPER_LINTER_OUTPUT: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
