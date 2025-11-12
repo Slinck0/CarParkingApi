@@ -13,7 +13,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var emp_lam = () => Console.WriteLine("lol");
+        var emp_lam = () => Console.WriteLine("lsol");
 
         
         var bUIlder = WebApplication.CreateBuilder(args);
