@@ -19,16 +19,19 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore (to get analyzer packages)
+      - name: Restore original project (to get analyzers)
         run: dotnet restore V2/V2.csproj
 
-      - name: Find all .cs files (exclude .csproj, bin, obj)
-        id: sources
+      - name: Extract PackageReferences from V2.csproj
+        id: packages
         run: |
-          SOURCES=$(find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' | sort | tr '\n' ';')
-          echo "sources=$SOURCES" >> $GITHUB_OUTPUT
+          PACKAGES=$(grep -oP '<PackageReference Include="\K[^"]+' V2/V2.csproj | sort -u)
+          VERSIONS=$(grep -oP '<PackageReference Include="[^"]+" Version="\K[^"]+' V2/V2.csproj)
+          echo "packages<<EOF" >> $GITHUB_OUTPUT
+          paste -d ';' <(echo "$PACKAGES") <(echo "$VERSIONS") | sed 's/^/    <PackageReference Include="/; s/;/\" Version=\"/; s/$/\"\/>/' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Create temporary lint project
+      - name: Create temporary lint project with packages
         run: |
           cat > /tmp/lint.csproj <<'EOF'
           <Project Sdk="Microsoft.NET.Sdk">
@@ -44,13 +47,18 @@ jobs:
             <ItemGroup>
           EOF
 
-          # Add each .cs file as <Compile Include="..."/>
-          for file in $(find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' | sort); do
-            echo "    <Compile Include=\"$file\" />" >> /tmp/lint.csproj
-          done
+          # Add PackageReferences
+          echo '${{ steps.packages.outputs.packages }}' >> /tmp/lint.csproj
 
-          echo "  </ItemGroup>" >> /tmp/lint.csproj
+          # Add Compile items
+          echo "    </ItemGroup>" >> /tmp/lint.csproj
+          echo "    <ItemGroup>" >> /tmp/lint.csproj
+          find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' | sort | sed 's/^/      <Compile Include="/; s/$/"\/>/' >> /tmp/lint.csproj
+          echo "    </ItemGroup>" >> /tmp/lint.csproj
           echo "</Project>" >> /tmp/lint.csproj
+
+      - name: Restore temp lint project
+        run: dotnet restore /tmp/lint.csproj
 
       - name: Run Analyzers on .cs files only
         run: |
