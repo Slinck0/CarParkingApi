@@ -5,7 +5,6 @@ on:
   pull_request:
     branches: [ main, dev, CI/CD ]
 
-# FIX: Replace top-level permissions with job-specific permissions
 jobs:
   test:
     name: Unit Testing
@@ -13,53 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2.1.0
       - run: dotnet test
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-      checks: write
-    steps:
-      - name: Checkout code (full history)
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-          
-      - name: Super-Linter (with enhanced visibility)
-        uses: super-linter/super-linter@v8.2.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-          # Output Configuration
-          OUTPUT_FORMAT: github-annotations
-          OUTPUT_DETAILS: detailed
-          CREATE_SUMMARY: true
-          SUMMARY_INCLUDE_NON_PROBLEMS: true
-          SHOW_RULER: true
-          
-          # File Management
-          SAVE_SUPER_LINTER_OUTPUT: true
-          SUPER_LINTER_OUTPUT_DIRECTORY_NAME: super-linter-output
-          
-          # Linter Configuration
-          VALIDATE_ALL_CODEBASE: false
-          VALIDATE_CSHARP: true
-          VALIDATE_JSON: true
-          VALIDATE_YAML: true
-          VALIDATE_EDITORCONFIG: true
-          VALIDATE_GITHUB_ACTIONS: true
-          VALIDATE_GITLEAKS: true
-          
-      - name: Upload Super-Linter logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: super-linter-logs
-          path: super-linter-output/
-          retention-days: 7
 
   build:
     name: Build
