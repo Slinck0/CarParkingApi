@@ -4,6 +4,8 @@ on:
     branches: [ main, dev, CI/CD ]
   pull_request:
     branches: [ main, dev, CI/CD ]
+
+# FIX: Replace top-level permissions with job-specific permissions
 jobs:
   test:
     name: Unit Testing
@@ -11,35 +13,37 @@ jobs:
     steps:
       - uses: actions/checkout@v2.1.0
       - run: dotnet test
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    # FIX: Use minimal permissions instead of broad ones
     permissions:
       contents: read
-      packages: read
-      statuses: write
+      actions: read
+      checks: write  # Needed for Super-Linter annotations
     steps:
       - name: Checkout code (full history)
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
+          
       - name: Super-Linter (with enhanced visibility)
         uses: super-linter/super-linter@v8.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
           # Output Configuration
-          OUTPUT_FORMAT: github-annotations    # Inline comments in PR
-          OUTPUT_DETAILS: detailed             # Detailed output
-          CREATE_SUMMARY: true                 # GitHub job summary
-          SUMMARY_INCLUDE_NON_PROBLEMS: true   # Show what passed
-          SHOW_RULER: true                     # Shows ruler in output
+          OUTPUT_FORMAT: github-annotations
+          OUTPUT_DETAILS: detailed
+          CREATE_SUMMARY: true
+          SUMMARY_INCLUDE_NON_PROBLEMS: true
+          SHOW_RULER: true
           
           # File Management
           SAVE_SUPER_LINTER_OUTPUT: true
           SUPER_LINTER_OUTPUT_DIRECTORY_NAME: super-linter-output
-          OUTPUT_FOLDER: super-linter-results
           
           # Linter Configuration
           VALIDATE_ALL_CODEBASE: false
@@ -51,10 +55,9 @@ jobs:
           VALIDATE_GITLEAKS: true
           VALIDATE_CHECKOV: true
           
-          # Behavior
-          FILTER_REGEX_INCLUDE: .*             # Include all files
-          FILTER_REGEX_EXCLUDE: (super-linter-output|.git|node_modules).*
-         
+          # FIX: Configure Checkov to ignore this specific rule if needed
+          #CHECKOV_SKIP_CHECK: CKV2_GHA_1
+          
       - name: Upload Super-Linter logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +65,12 @@ jobs:
           name: super-linter-logs
           path: super-linter-output/
           retention-days: 7
+
   build:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
@@ -79,10 +85,13 @@ jobs:
             --configuration Release \
             --no-restore \
             -p:ContinuousIntegrationBuild=true
+
   publish-windows:
     name: Publish to Windows
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
@@ -106,10 +115,13 @@ jobs:
         with:
           name: CarParkingApi-V2-windows
           path: CarParkingApi-V2-windows-${{ github.sha }}.zip
+
   publish-linux:
     name: Publish to Linux
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
