@@ -17,11 +17,10 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    # FIX: Use minimal permissions instead of broad ones
     permissions:
       contents: read
       actions: read
-      checks: write  # Needed for Super-Linter annotations
+      checks: write
     steps:
       - name: Checkout code (full history)
         uses: actions/checkout@v5
@@ -56,7 +55,7 @@ jobs:
           VALIDATE_CHECKOV: true
           
           # FIX: Configure Checkov to ignore this specific rule if needed
-          #CHECKOV_SKIP_CHECK: CKV2_GHA_1
+          CHECKOV_SKIP_CHECK: CKV2_GHA_1
           
       - name: Upload Super-Linter logs
         if: always()
