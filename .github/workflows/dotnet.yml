@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Lint – Full Roslyn Analyzers (only .cs)
+    name: Lint – Roslyn Analyzers (.cs only)
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -19,46 +19,15 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore original project (for analyzers)
-        run: dotnet restore V2/V2.csproj
+      - name: Install dotnet-format
+        run: dotnet tool install --global dotnet-format --version 9.0.0
 
-      - name: Copy .cs files to /tmp/V2
+      - name: Run Roslyn Analyzers on .cs files
         run: |
-          mkdir -p /tmp/V2
-          find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' -exec cp --parents {} /tmp/ \;
-
-      - name: Create temporary lint project
-        run: |
-          cat > /tmp/lint.csproj <<'EOF'
-          <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-              <TargetFramework>net9.0</TargetFramework>
-              <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-              <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-              <RunAnalyzers>true</RunAnalyzers>
-              <AnalysisLevel>latest</AnalysisLevel>
-              <Nullable>enable</Nullable>
-              <LangVersion>latest</LangVersion>
-            </PropertyGroup>
-            <ItemGroup>
-          EOF
-
-          # Add all .cs files from /tmp/V2
-          find /tmp/V2 -name '*.cs' ! -name '*.csproj' | sort | sed 's|/tmp/||; s/^/      <Compile Include="/; s/$/" \/>/' >> /tmp/lint.csproj
-
-          echo "    </ItemGroup>" >> /tmp/lint.csproj
-          echo "</Project>" >> /tmp/lint.csproj
-
-      - name: Restore temp project
-        run: dotnet restore /tmp/lint.csproj
-
-      - name: Run Analyzers
-        run: |
-          dotnet build /tmp/lint.csproj \
-            --configuration Release \
-            --no-restore \
+          dotnet format analyzers V2 \
+            --include $(find V2 -type f -name '*.cs' ! -name '*.csproj' ! -path '*/bin/*' ! -path '*/obj/*' | tr '\n' ' ') \
+            --severity info \
             --verbosity minimal
-
   test:
     name: Test + Coverage
     runs-on: ubuntu-latest
