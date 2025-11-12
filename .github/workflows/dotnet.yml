@@ -8,7 +8,7 @@ on:
 jobs:            
   test:
     name: Unit Testing
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2.1.0
       - run: dotnet test
@@ -30,7 +30,6 @@ jobs:
       - name: Super-Linter (single-linter mode)
         uses: super-linter/super-linter@v8.2.1
         env:
-          LOG_LEVEL: DEBUG
           SAVE_SUPER_LINTER_OUTPUT: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,6 +38,8 @@ jobs:
           VALIDATE_YAML: true
           VALIDATE_EDITORCONFIG: true
           VALIDATE_GITHUB_ACTIONS: true
+
+          CREATE_SUMMARY: true
 
           VALIDATE_PYTHON: false
           VALIDATE_PYTHON_BLACK: false
