@@ -13,18 +13,21 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var emp_lam = () => Console.WriteLine("lsol");
+
+        
+        var bUIlder = WebApplication.CreateBuilder(args);
 
         // ===== Database =====
-        builder.Services.AddDbContext<AppDbContext>(options =>
+        bUIlder.Services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite("Data Source=parking.db"));
 
         // ===== JWT Authentication =====
-        var jwtKey = builder.Configuration["Jwt:Key"] ?? "pT6Zk2y7w3Qk9uE4bH1rT8xF2cM7nV5jL0aS9dR3uY6qP1wX8eD4kM2nB7zH5cV1";
-        var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ParkingApi";
-        var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ParkingApiUsers";
+        var jwtKey = bUIlder.Configuration["Jwt:Key"] ?? "pT6Zk2y7w3Qk9uE4bH1rT8xF2cM7nV5jL0aS9dR3uY6qP1wX8eD4kM2nB7zH5cV1";
+        var jwtIssuer = bUIlder.Configuration["Jwt:Issuer"] ?? "ParkingApi";
+        var jwtAudience = bUIlder.Configuration["Jwt:Audience"] ?? "ParkingApiUsers";
 
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        bUIlder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -39,11 +42,11 @@ public class Program
                 };
             });
 
-        builder.Services.AddAuthorization();
+        bUIlder.Services.AddAuthorization();
 
         // ===== Swagger (met JWT Authorization knop) =====
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(c =>
+        bUIlder.Services.AddEndpointsApiExplorer();
+        bUIlder.Services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v2", new OpenApiInfo
             {
@@ -89,10 +92,10 @@ public class Program
         });
 
         // ===== Services =====
-        builder.Services.AddScoped<TokenService>();
+        bUIlder.Services.AddScoped<TokenService>();
 
         // ===== App Build =====
-        var app = builder.Build();
+        var app = bUIlder.Build();
 
         // ===== Middleware =====
         app.UseSwagger();
