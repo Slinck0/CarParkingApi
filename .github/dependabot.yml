@@ -6,11 +6,11 @@ updates:
       interval: "weekly"
       
   - package-ecosystem: "dotnet-sdk"
-    directory: "/"
+    directory: "/V2"
     schedule:
       interval: "weekly"
       
   - package-ecosystem: "nuget"
-    directory: "/"
+    directory: "/V2"
     schedule:
       interval: "daily"
