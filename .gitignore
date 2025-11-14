@@ -11,7 +11,6 @@ Thumbs.db
 .venv/
 venv/
 .env/
-
 # Python cache
 __pycache__/
 *.pyc
@@ -32,4 +31,13 @@ __pycache__/
 # Negeer ALLE data onder V1/api/data (alle subfolders)
 V1/api/data/**
 V1/api/Process/** 
+V2/Data_json/** 
 
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+**/bin/
+*.user
+*.suo
+ 

@@ -563,42 +563,65 @@ class RequestHandler(BaseHTTPRequestHandler):
                 
         
         elif self.path.startswith("/reservations/"):
-            reservations = load_reservation_data()
+            reservations = load_reservation_data()          # verwacht dict: { "1": {...}, ... }
             parking_lots = load_parking_lot_data()
-            rid = self.path.replace("/reservations/", "")
-            if rid:
-                if rid in reservations:
-                    token = self.headers.get('Authorization')
-                    if not token or not get_session(token):
-                        self.send_response(401)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(b"Unauthorized: Invalid or missing session token")
-                        return
-                    session_user = get_session(token)
-                    if "ADMIN" == session_user.get('role') or session_user["username"] == reservations[rid].get("user"):
-                        del reservations[rid]
-                    else:
-                        self.send_response(403)
-                        self.send_header("Content-type", "application/json")
-                        self.end_headers()
-                        self.wfile.write(b"Access denied")
-                        return
-                    pid = reservations[rid]["parkinglot"]
-                    parking_lots[pid]["reserved"] -= 1
-                    save_reservation_data(reservations)
-                    save_parking_lot_data(parking_lots)
-                    self.send_response(200)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
-                    return
-                else:
-                    self.send_response(404)
-                    self.send_header("Content-type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"Reservation not found")
-                    return
+
+            # id uit URL halen (zonder trailing slash of querystring)
+            rid = self.path.split("/reservations/", 1)[1].split("?", 1)[0].strip("/")
+            rid = str(rid)  # zorg dat je keys als strings vergelijkt
+
+            # 404 als id niet bestaat
+            if rid not in reservations:
+                self.send_response(404)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Reservation not found"}).encode())
+                return
+
+            # Auth check
+            token = self.headers.get('Authorization')
+            session_user = get_session(token) if token else None
+            if not session_user:
+                self.send_response(401)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Unauthorized: Invalid or missing session token"}).encode())
+                return
+
+            # Autorisatie: admin of eigenaar
+            res = reservations[rid]
+            is_admin = session_user.get('role') == 'ADMIN'
+            # ondersteun beide schema’s: 'user' (username) of 'user_id'
+            is_owner = (
+                (session_user.get("username") and res.get("user") and session_user["username"] == res["user"]) or
+                (session_user.get("user_id") and res.get("user_id") and str(session_user["user_id"]) == str(res["user_id"]))
+            )
+            if not (is_admin or is_owner):
+                self.send_response(403)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Access denied"}).encode())
+                return
+
+            # Parking lot reservering bijwerken (haal eerst op, daarna deleten)
+            pid = res.get("parkinglot") or res.get("parking_lot_id")
+            if pid is not None and pid in parking_lots:
+                try:
+                    parking_lots[pid]["reserved"] = max(0, int(parking_lots[pid].get("reserved", 0)) - 1)
+                except (TypeError, ValueError, KeyError):
+                    # fail-safe: zet naar 0 als het niet klopt
+                    parking_lots[pid]["reserved"] = 0
+
+            # Verwijder en sla op
+            del reservations[rid]
+            save_reservation_data(reservations)
+            save_parking_lot_data(parking_lots)
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "Deleted"}).encode("utf-8"))
+            return
                 
 
         elif self.path.startswith("/vehicles/"):
