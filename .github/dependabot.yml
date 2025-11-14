@@ -1,4 +1,4 @@
-#dependendabot.yml
+#dependendabot.yml - checks
 version: 2
 updates:
   - package-ecosystem: "github-actions"
