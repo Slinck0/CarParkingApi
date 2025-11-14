@@ -1,16 +1,20 @@
+#dependendabot.yml
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
       
   - package-ecosystem: "dotnet-sdk"
     directory: "/V2"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
       
   - package-ecosystem: "nuget"
     directory: "/V2"
+    target-branch: "dev"
     schedule:
       interval: "daily"
