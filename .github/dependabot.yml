@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/V2"
+    schedule:
+      interval: "weekly"
+      
+  - package-ecosystem: "nuget"
+    directory: "/V2"
+    schedule:
+      interval: "daily"
