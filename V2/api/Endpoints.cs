@@ -236,13 +236,11 @@ public static class Endpoints
 
             });
         });
-        // ✅ Add Vehicle endpoint
         app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
         {
             if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
                 return Results.BadRequest("License plate is required.");
 
-            // Optional: prevent duplicates
             if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
                 return Results.Conflict("A vehicle with this license plate already exists.");
 
@@ -251,8 +249,7 @@ public static class Endpoints
 
             return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
         })
-        .WithName("CreateVehicle")       // Name used by Swagger
-        .WithTags("Vehicles");           // Group in Swagger UI
+        .WithName("CreateVehicle");
     }
     
 }

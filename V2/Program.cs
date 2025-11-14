@@ -111,7 +111,7 @@ public class Program
 
         using (var scope = app.Services.CreateScope())
         {
-            if(true)
+            if(args.Contains("import"))
             {
                 Console.WriteLine("🚀 Starten importeren JSON-data...");
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
