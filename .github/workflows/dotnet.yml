@@ -32,20 +32,7 @@ jobs:
             --configuration Release \
             --no-restore \
             -p:ContinuousIntegrationBuild=true
-
-  sonarqube:
-    name: Sonarqube analysis
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@v6.0.0 
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        
+            
   publish-windows:
     name: Publish to Windows
     runs-on: ubuntu-latest
