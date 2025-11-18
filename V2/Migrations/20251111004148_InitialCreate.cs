@@ -22,14 +22,6 @@ namespace V2.Migrations
                 oldClrType: typeof(int),
                 oldType: "INTEGER");
 
-            migrationBuilder.AlterColumn<decimal>(
-                name: "DayTariff",
-                table: "parking_lot",
-                type: "decimal(10,2)",
-                nullable: true,
-                oldClrType: typeof(decimal),
-                oldType: "decimal(10,2)");
-
             migrationBuilder.CreateIndex(
                 name: "IX_user_Email",
                 table: "user",
@@ -51,16 +43,6 @@ namespace V2.Migrations
                 defaultValue: 0,
                 oldClrType: typeof(int),
                 oldType: "INTEGER",
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<decimal>(
-                name: "DayTariff",
-                table: "parking_lot",
-                type: "decimal(10,2)",
-                nullable: false,
-                defaultValue: 0m,
-                oldClrType: typeof(decimal),
-                oldType: "decimal(10,2)",
                 oldNullable: true);
 
             migrationBuilder.CreateIndex(

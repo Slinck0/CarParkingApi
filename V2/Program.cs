@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Jsonimporter.Api;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -107,6 +108,16 @@ public class Program
 
         // ===== Endpoints =====
         app.MapEndpoints();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            if(args.Contains("import"))
+            {
+                Console.WriteLine("🚀 Starten importeren JSON-data...");
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                AppInt.ImportJson().Wait();
+            }
+        }
 
         app.Run();
     }

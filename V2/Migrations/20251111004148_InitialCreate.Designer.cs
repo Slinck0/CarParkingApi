@@ -11,7 +11,7 @@ using ParkingImporter.Data;
 namespace V2.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251111163628_InitialCreate")]
+    [Migration("20251111004148_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -44,7 +44,7 @@ namespace V2.Migrations
                     b.Property<DateOnly>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<decimal?>("DayTariff")
+                    b.Property<decimal>("DayTariff")
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<double>("Lat")

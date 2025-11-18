@@ -232,9 +232,24 @@ public static class Endpoints
                     enddate = endDate.ToString("yyyy-MM-dd"),
                     parkinglot = req.ParkingLot.ToString()
                 }
-            
 
-        });});
+
+            });
+        });
+        app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
+                return Results.BadRequest("License plate is required.");
+
+            if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
+                return Results.Conflict("A vehicle with this license plate already exists.");
+
+            db.Vehicles.Add(vehicle);
+            await db.SaveChangesAsync();
+
+            return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
+        })
+        .WithName("CreateVehicle");
     }
     
 }
