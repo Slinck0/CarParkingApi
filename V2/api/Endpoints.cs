@@ -1,16 +1,10 @@
-using System.Data.Common;
-using System.Security.Principal;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using ParkingImporter.Data;
 using ParkingImporter.Models;
 using ParkingApi.Services;
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims; // als je claims leest
-
 
 namespace ParkingApi.Endpoints;
+
 public static class Endpoints
 {
     public static void MapEndpoints(this WebApplication app)
@@ -47,7 +41,7 @@ public static class Endpoints
             db.Users.Add(user);
             db.SaveChanges();
             return Results.Created($"/users/{user.Id}", new { user.Id, user.Username, user.Email });
-        });
+        }).WithTags("Authentication");
 
         app.MapPost("/login", async (LoginRequest req, AppDbContext db, TokenService token) =>
         {
@@ -71,9 +65,9 @@ public static class Endpoints
                 token = jwt,
                 user = new UserResponse(user.Id, user.Username, user.Role.ToString())
             });
-        });
+        }).WithTags("Authentication");
 
-        var reservationGroup = app.MapGroup("/reservations").RequireAuthorization();
+        var reservationGroup = app.MapGroup("/reservations").RequireAuthorization().WithTags("Reservations");
 
         reservationGroup.MapPost("", async (HttpContext http, ReservationRequest req, AppDbContext db) =>
         {
@@ -232,9 +226,106 @@ public static class Endpoints
                     enddate = endDate.ToString("yyyy-MM-dd"),
                     parkinglot = req.ParkingLot.ToString()
                 }
+
+
+            });
+
+        });
+        app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
+                return Results.BadRequest("License plate is required.");
+
+            if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
+                return Results.Conflict("A vehicle with this license plate already exists.");
+
+            db.Vehicles.Add(vehicle);
+            await db.SaveChangesAsync();
+
+            return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
+        })
+        .WithName("CreateVehicle")
+        .WithTags("Vehicles");
+
+        app.MapPost("/parkinglots/{id}/sessions/start", async (int id, AppDbContext db, HttpContext http, StartStopSessionRequest req) =>
+        {
+            var parkingLot = await db.ParkingLots.FindAsync(id);
+            if (parkingLot == null)
+            {
+                return Results.NotFound("Parking lot not found.");
+            }
+            int.TryParse(
+                http.User?.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value,
+                out var userId);
+            var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.LicensePlate == req.LicensePlate && v.UserId == userId);
+            if (vehicle == null)
+            {
+                return Results.NotFound("Vehicle not found.");
+            }
+
+            var session = new ParkingSessions
+            {
+                UserId = userId,
+                VehicleId = vehicle.Id,
+                StartTime = DateTime.UtcNow,
+                LicensePlate = req.LicensePlate
+            };
+            db.ParkingSessions.Add(session);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                message = $"Session started for vehicle {req.LicensePlate} at parking lot {parkingLot.Name}."
+            });
+        }).RequireAuthorization().WithTags("Sessions");
+
+        app.MapPost("/parkinglots/{id}/sessions/stop", async (int id, AppDbContext db, HttpContext http, StartStopSessionRequest req) =>
+        {
+            var parkingLot = await db.ParkingLots.FindAsync(id);
+            if (parkingLot == null)
+            {
+                return Results.NotFound("Parking lot not found.");
+            }
+            int.TryParse(
+                http.User?.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value,
+                out var userId);
+
+            var vehicle = await db.Vehicles
+                .FirstOrDefaultAsync(v => v.LicensePlate == req.LicensePlate && v.UserId == userId);
+            if (vehicle == null)
+            {
+                return Results.NotFound("Vehicle not found.");
+            }
             
 
-        });});
+            var session = await db.ParkingSessions
+                .Where(s => s.VehicleId == vehicle.Id && s.EndTime == null)
+                .OrderByDescending(s => s.StartTime)
+                .FirstOrDefaultAsync();
+
+            if (session == null)
+            {
+                return Results.NotFound("Active parking session not found for this vehicle.");
+            }
+            session.EndTime = DateTime.UtcNow;
+            var duration = session.EndTime.Value - session.StartTime;
+            var hours = Math.Ceiling(duration.TotalHours);
+            var (price, _, _) = Helpers.CalculatePrice(parkingLot, session.StartTime, session.EndTime.Value);
+            var Cost = (decimal)price;
+            session.Cost = Cost;
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                message = $"Session stopped for vehicle {req.LicensePlate} at parking lot {parkingLot.Name}."
+            });
+        }).RequireAuthorization().WithTags("Sessions");
+
+
+
+
     }
-    
 }
+    
+
