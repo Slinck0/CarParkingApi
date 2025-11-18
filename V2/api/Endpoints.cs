@@ -11,6 +11,7 @@ using System.Security.Claims; // als je claims leest
 
 
 namespace ParkingApi.Endpoints;
+
 public static class Endpoints
 {
     public static void MapEndpoints(this WebApplication app)
@@ -236,6 +237,45 @@ public static class Endpoints
 
             });
         });
+
+        // GET /profile - returns the profile of the authenticated user
+        app.MapGet("/profile", async (HttpContext http, AppDbContext db) =>
+        {
+            // Read user ID from JWT claim (same logic as /reservations/me)
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            // Lookup user
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            // Build profile response
+            var profile = new
+            {
+                user.Id,
+                user.Username,
+                user.Name,
+                user.Email,
+                user.Phone,
+                user.Role,
+                user.BirthYear,
+                user.CreatedAt,
+                user.Active
+            };
+
+            return Results.Ok(profile);
+        })
+        .RequireAuthorization();
+
+
+
         app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
         {
             if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
@@ -251,5 +291,5 @@ public static class Endpoints
         })
         .WithName("CreateVehicle");
     }
-    
+
 }
