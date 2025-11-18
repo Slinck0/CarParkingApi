@@ -250,6 +250,23 @@ public static class Endpoints
             return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
         })
         .WithName("CreateVehicle");
+        app.MapPut("/vehicles/{id}", async (int id, Vehicle updatedVehicle, AppDbContext db) =>
+        {
+            var vehicle = await db.Vehicles.FindAsync(id);
+            if (vehicle == null)
+                return Results.NotFound("Vehicle not found.");
+
+            if (string.IsNullOrWhiteSpace(updatedVehicle.LicensePlate))
+                return Results.BadRequest("License plate is required.");
+
+            vehicle.LicensePlate = updatedVehicle.LicensePlate;
+            vehicle.Model = updatedVehicle.Model;
+            vehicle.Color = updatedVehicle.Color;
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(vehicle);
+        });
     }
     
 }
