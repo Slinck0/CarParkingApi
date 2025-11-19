@@ -236,10 +236,28 @@ public static class Endpoints
 
             });
         });
-        app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
+        app.MapPost("/vehicles", async (HttpContext http, Vehicle vehicle, AppDbContext db) =>
         {
+            var nextID = db.Vehicles.Any() ? await db.Vehicles.MaxAsync(v => v.Id) + 1 : 1;
+            vehicle.Id = nextID;
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            vehicle.UserId = Convert.ToInt32(userIdClaim);
+
+            vehicle.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
+
             if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
                 return Results.BadRequest("License plate is required.");
+
+            if (string.IsNullOrWhiteSpace(vehicle.Model))
+                return Results.BadRequest("Model is required.");
+
+            if (string.IsNullOrWhiteSpace(vehicle.Color))
+                return Results.BadRequest("Color is required.");
+
+            if (string.IsNullOrWhiteSpace(vehicle.Make))
+                return Results.BadRequest("Make is required.");
 
             if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
                 return Results.Conflict("A vehicle with this license plate already exists.");
@@ -250,18 +268,37 @@ public static class Endpoints
             return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
         })
         .WithName("CreateVehicle");
-        app.MapPut("/vehicles/{id}", async (int id, Vehicle updatedVehicle, AppDbContext db) =>
+
+        app.MapPut("/vehicles/{id}", async (int id, HttpContext http, Vehicle updatedVehicle, AppDbContext db) =>
         {
             var vehicle = await db.Vehicles.FindAsync(id);
             if (vehicle == null)
                 return Results.NotFound("Vehicle not found.");
 
+                var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+                if (string.IsNullOrEmpty(userIdClaim) || vehicle.UserId != Convert.ToInt32(userIdClaim))
+                {
+                    return Results.Unauthorized();
+                }
+
             if (string.IsNullOrWhiteSpace(updatedVehicle.LicensePlate))
                 return Results.BadRequest("License plate is required.");
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Model))
+                return Results.BadRequest("Model is required.");
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Color))
+                return Results.BadRequest("Color is required.");
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Make))
+                return Results.BadRequest("Make is required.");
+
+            if (await db.Vehicles.AnyAsync(v => v.LicensePlate == updatedVehicle.LicensePlate && v.Id != id))
+                return Results.Conflict("A vehicle with this license plate already exists.");
 
             vehicle.LicensePlate = updatedVehicle.LicensePlate;
             vehicle.Model = updatedVehicle.Model;
             vehicle.Color = updatedVehicle.Color;
+            vehicle.Make = updatedVehicle.Make;
 
             await db.SaveChangesAsync();
 
