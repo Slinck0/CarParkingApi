@@ -341,6 +341,36 @@ public static class Endpoints
         })
         .RequireAuthorization();
 
+        // DELETE /profile - delete the authenticated user's account
+        app.MapDelete("/profile", async (HttpContext http, AppDbContext db) =>
+        {
+            // 1. Read userId from claims
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            // 2. Find the user
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            // 3. Delete the user account
+            db.Users.Remove(user);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                status = "Success",
+                message = "User account deleted successfully."
+            });
+        })
+        .RequireAuthorization();
+
 
         app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
         {
