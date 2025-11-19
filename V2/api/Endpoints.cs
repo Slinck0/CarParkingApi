@@ -269,6 +269,25 @@ public static class Endpoints
         })
         .WithName("CreateVehicle");
 
+        app.MapGet("/vehicles", async (HttpContext http, AppDbContext db) =>
+        {
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Results.Unauthorized();
+            }
+
+            int userId = Convert.ToInt32(userIdClaim);
+
+            var vehicles = await db.Vehicles
+                .Where(v => v.UserId == userId)
+                .ToListAsync();
+
+            return Results.Ok(vehicles);
+        });
+
         app.MapPut("/vehicles/{id}", async (int id, HttpContext http, Vehicle updatedVehicle, AppDbContext db) =>
         {
             var vehicle = await db.Vehicles.FindAsync(id);
