@@ -320,45 +320,50 @@ public static class Endpoints
             });
         }).RequireAuthorization().WithTags("Sessions");
 
-        app.MapPost("/parking-lots", async (ParkingLotCreate parkingLot, AppDbContext db) =>
+        app.MapPost("/parking-lots", async (ParkingLotCreate req, AppDbContext db) =>
         {
-            if (string.IsNullOrWhiteSpace(parkingLot.Name) ||
-                parkingLot.Capacity <= 0 ||
-                parkingLot.Location == null ||
-                parkingLot.Address == null ||
-                parkingLot.Tariff <= 0 ||
-                parkingLot.DayTariff == null ||
-                parkingLot.Lat <= 0 ||
-                parkingLot.Lng <= 0)
+            if (string.IsNullOrWhiteSpace(req.Name) ||
+                req.Capacity <= 0 ||
+                string.IsNullOrWhiteSpace(req.Location) ||
+                string.IsNullOrWhiteSpace(req.Address) ||
+                req.Tariff <= 0 ||
+                req.DayTariff == null ||
+                req.Lat == 0 ||
+                req.Lng == 0)
             {
-                return Results.BadRequest("Name and DayTariff are required.");
+                return Results.BadRequest("Invalid parking lot data.");
             }
 
-            new ParkingLot
+            var parkingLot = new ParkingLot
             {
-                Name = parkingLot.Name,
-                Capacity = parkingLot.Capacity,
-                Location = parkingLot.Location,
-                Address = parkingLot.Address,
-                Tariff = parkingLot.Tariff,
-                DayTariff = parkingLot.DayTariff,
-                Lat = parkingLot.Lat,
-                Lng = parkingLot.Lng
+                Name = req.Name,
+                Capacity = req.Capacity,
+                Location = req.Location,
+                Address = req.Address,
+                Tariff = req.Tariff,
+                DayTariff = req.DayTariff,
+                Lat = req.Lat,
+                Lng = req.Lng,
+                Reserved = 0,
+                Status = req.Status,
+                ClosedReason = req.ClosedReason,
+                ClosedDate = req.ClosedDate,
+                CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow)
             };
 
             db.ParkingLots.Add(parkingLot);
             await db.SaveChangesAsync();
-            return Results.Ok(new
+
+            return Results.Created($"/parking-lots/{parkingLot.Id}", new
             {
                 message = "Parking lot created successfully.",
                 parkingLotId = parkingLot.Id,
                 parkingLotName = parkingLot.Name,
-                ParkinglotAdress = parkingLot.Address
-                
-
+                parkingLotAddress = parkingLot.Address
             });
 
         }).RequireAuthorization("ADMIN").WithTags("ParkingLots");
+
 
 
 
