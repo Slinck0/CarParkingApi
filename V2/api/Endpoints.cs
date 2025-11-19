@@ -304,6 +304,25 @@ public static class Endpoints
 
             return Results.Ok(vehicle);
         });
+        app.MapDelete("vehicles/{id}", async (int id, HttpContext http, AppDbContext db) =>
+        {
+            var vehicle = await db.Vehicles.FindAsync(id);
+            if (vehicle == null)
+                return Results.NotFound("Vehicle not found.");
+
+                var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+                if (string.IsNullOrEmpty(userIdClaim) || vehicle.UserId != Convert.ToInt32(userIdClaim))
+                {
+                    return Results.Unauthorized();
+                }
+
+            db.Vehicles.Remove(vehicle);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new { status = "Success", message = "Vehicle deleted successfully." });
+        });
     }
     
 }
