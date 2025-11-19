@@ -108,7 +108,7 @@ public static class Endpoints
                 StartTime = startDate,
                 EndTime = endDate,
                 CreatedAt = DateTime.UtcNow,
-                Status = ReservationStatus.pending,
+                Status = ReservationStatus.confirmed,
                 Cost = price
             };
 
@@ -296,8 +296,6 @@ public static class Endpoints
             {
                 return Results.NotFound("Vehicle not found.");
             }
-            
-
             var session = await db.ParkingSessions
                 .Where(s => s.VehicleId == vehicle.Id && s.EndTime == null)
                 .OrderByDescending(s => s.StartTime)
@@ -321,6 +319,46 @@ public static class Endpoints
                 message = $"Session stopped for vehicle {req.LicensePlate} at parking lot {parkingLot.Name}."
             });
         }).RequireAuthorization().WithTags("Sessions");
+
+        app.MapPost("/parking-lots", async (ParkingLotCreate parkingLot, AppDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(parkingLot.Name) ||
+                parkingLot.Capacity <= 0 ||
+                parkingLot.Location == null ||
+                parkingLot.Address == null ||
+                parkingLot.Tariff <= 0 ||
+                parkingLot.DayTariff == null ||
+                parkingLot.Lat <= 0 ||
+                parkingLot.Lng <= 0)
+            {
+                return Results.BadRequest("Name and DayTariff are required.");
+            }
+
+            new ParkingLot
+            {
+                Name = parkingLot.Name,
+                Capacity = parkingLot.Capacity,
+                Location = parkingLot.Location,
+                Address = parkingLot.Address,
+                Tariff = parkingLot.Tariff,
+                DayTariff = parkingLot.DayTariff,
+                Lat = parkingLot.Lat,
+                Lng = parkingLot.Lng
+            };
+
+            db.ParkingLots.Add(parkingLot);
+            await db.SaveChangesAsync();
+            return Results.Ok(new
+            {
+                message = "Parking lot created successfully.",
+                parkingLotId = parkingLot.Id,
+                parkingLotName = parkingLot.Name,
+                ParkinglotAdress = parkingLot.Address
+                
+
+            });
+
+        }).RequireAuthorization("ADMIN").WithTags("ParkingLots");
 
 
 
