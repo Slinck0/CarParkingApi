@@ -250,12 +250,10 @@ public static class Endpoints
             if (!int.TryParse(userIdClaim, out int userId))
                 return Results.BadRequest("Invalid user ID in token.");
 
-            // Lookup user
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 return Results.NotFound("User not found.");
 
-            // Build profile response
             var profile = new
             {
                 user.Id,
@@ -273,11 +271,10 @@ public static class Endpoints
         })
         .RequireAuthorization();
 
-        // PUT /profile
-        // PUT /profile - update profile of authenticated user
+        // PUT /profile 
         app.MapPut("/profile", async (HttpContext http, AppDbContext db, UpdateProfileRequest req) =>
         {
-            // 1. Read the userId from JWT claims (same as /reservations/me and GET /profile)
+            // Read the userId from claim
             var userIdClaim = http.User?.Claims
                 .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
@@ -287,7 +284,6 @@ public static class Endpoints
             if (!int.TryParse(userIdClaim, out int userId))
                 return Results.BadRequest("Invalid user ID in token.");
 
-            // 2. Basic validation (similar to /register)
             if (string.IsNullOrWhiteSpace(req.Name) ||
                 string.IsNullOrWhiteSpace(req.Email) ||
                 string.IsNullOrWhiteSpace(req.PhoneNumber) ||
@@ -301,12 +297,11 @@ public static class Endpoints
                 return Results.BadRequest("Invalid email format.");
             }
 
-            // 3. Load user
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 return Results.NotFound("User not found.");
 
-            // 4. Check if new email is already used by another user
+            // Check if new email is already used by another user
             var emailExists = await db.Users
                 .AnyAsync(u => u.Email == req.Email && u.Id != user.Id);
 
@@ -315,7 +310,6 @@ public static class Endpoints
                 return Results.Conflict("Email is already in use by another account.");
             }
 
-            // 5. Apply changes
             user.Name = req.Name;
             user.Email = req.Email;
             user.Phone = req.PhoneNumber;
@@ -323,7 +317,6 @@ public static class Endpoints
 
             await db.SaveChangesAsync();
 
-            // 6. Return updated profile (same shape as GET /profile)
             var profile = new
             {
                 user.Id,
@@ -341,10 +334,10 @@ public static class Endpoints
         })
         .RequireAuthorization();
 
-        // DELETE /profile - delete the authenticated user's account
+        // DELETE /profile 
         app.MapDelete("/profile", async (HttpContext http, AppDbContext db) =>
         {
-            // 1. Read userId from claims
+            // Read userId from claims
             var userIdClaim = http.User?.Claims
                 .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
@@ -354,12 +347,11 @@ public static class Endpoints
             if (!int.TryParse(userIdClaim, out int userId))
                 return Results.BadRequest("Invalid user ID in token.");
 
-            // 2. Find the user
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 return Results.NotFound("User not found.");
 
-            // 3. Delete the user account
+            // Delete the user account
             db.Users.Remove(user);
             await db.SaveChangesAsync();
 
