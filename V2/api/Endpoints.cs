@@ -238,10 +238,9 @@ public static class Endpoints
             });
         });
 
-        // GET /profile - returns the profile of the authenticated user
+        // GET /profile
         app.MapGet("/profile", async (HttpContext http, AppDbContext db) =>
         {
-            // Read user ID from JWT claim (same logic as /reservations/me)
             var userIdClaim = http.User?.Claims
                 .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
@@ -274,6 +273,73 @@ public static class Endpoints
         })
         .RequireAuthorization();
 
+        // PUT /profile
+        // PUT /profile - update profile of authenticated user
+        app.MapPut("/profile", async (HttpContext http, AppDbContext db, UpdateProfileRequest req) =>
+        {
+            // 1. Read the userId from JWT claims (same as /reservations/me and GET /profile)
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            // 2. Basic validation (similar to /register)
+            if (string.IsNullOrWhiteSpace(req.Name) ||
+                string.IsNullOrWhiteSpace(req.Email) ||
+                string.IsNullOrWhiteSpace(req.PhoneNumber) ||
+                req.BirthYear <= 0)
+            {
+                return Results.BadRequest("Name, Email, PhoneNumber and BirthYear are required.");
+            }
+
+            if (!req.Email.Contains("@") || !req.Email.Contains("."))
+            {
+                return Results.BadRequest("Invalid email format.");
+            }
+
+            // 3. Load user
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            // 4. Check if new email is already used by another user
+            var emailExists = await db.Users
+                .AnyAsync(u => u.Email == req.Email && u.Id != user.Id);
+
+            if (emailExists)
+            {
+                return Results.Conflict("Email is already in use by another account.");
+            }
+
+            // 5. Apply changes
+            user.Name = req.Name;
+            user.Email = req.Email;
+            user.Phone = req.PhoneNumber;
+            user.BirthYear = req.BirthYear;
+
+            await db.SaveChangesAsync();
+
+            // 6. Return updated profile (same shape as GET /profile)
+            var profile = new
+            {
+                user.Id,
+                user.Username,
+                user.Name,
+                user.Email,
+                user.Phone,
+                user.Role,
+                user.BirthYear,
+                user.CreatedAt,
+                user.Active
+            };
+
+            return Results.Ok(profile);
+        })
+        .RequireAuthorization();
 
 
         app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
