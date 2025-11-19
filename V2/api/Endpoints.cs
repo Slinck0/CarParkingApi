@@ -11,6 +11,7 @@ using System.Security.Claims; // als je claims leest
 
 
 namespace ParkingApi.Endpoints;
+
 public static class Endpoints
 {
     public static void MapEndpoints(this WebApplication app)
@@ -236,6 +237,133 @@ public static class Endpoints
 
             });
         });
+
+        // GET /profile
+        app.MapGet("/profile", async (HttpContext http, AppDbContext db) =>
+        {
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            var profile = new
+            {
+                user.Id,
+                user.Username,
+                user.Name,
+                user.Email,
+                user.Phone,
+                user.Role,
+                user.BirthYear,
+                user.CreatedAt,
+                user.Active
+            };
+
+            return Results.Ok(profile);
+        })
+        .RequireAuthorization();
+
+        // PUT /profile 
+        app.MapPut("/profile", async (HttpContext http, AppDbContext db, UpdateProfileRequest req) =>
+        {
+            // Read the userId from claim
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            if (string.IsNullOrWhiteSpace(req.Name) ||
+                string.IsNullOrWhiteSpace(req.Email) ||
+                string.IsNullOrWhiteSpace(req.PhoneNumber) ||
+                req.BirthYear <= 0)
+            {
+                return Results.BadRequest("Name, Email, PhoneNumber and BirthYear are required.");
+            }
+
+            if (!req.Email.Contains("@") || !req.Email.Contains("."))
+            {
+                return Results.BadRequest("Invalid email format.");
+            }
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            // Check if new email is already used by another user
+            var emailExists = await db.Users
+                .AnyAsync(u => u.Email == req.Email && u.Id != user.Id);
+
+            if (emailExists)
+            {
+                return Results.Conflict("Email is already in use by another account.");
+            }
+
+            user.Name = req.Name;
+            user.Email = req.Email;
+            user.Phone = req.PhoneNumber;
+            user.BirthYear = req.BirthYear;
+
+            await db.SaveChangesAsync();
+
+            var profile = new
+            {
+                user.Id,
+                user.Username,
+                user.Name,
+                user.Email,
+                user.Phone,
+                user.Role,
+                user.BirthYear,
+                user.CreatedAt,
+                user.Active
+            };
+
+            return Results.Ok(profile);
+        })
+        .RequireAuthorization();
+
+        // DELETE /profile 
+        app.MapDelete("/profile", async (HttpContext http, AppDbContext db) =>
+        {
+            // Read userId from claims
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            // Delete the user account
+            db.Users.Remove(user);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                status = "Success",
+                message = "User account deleted successfully."
+            });
+        })
+        .RequireAuthorization();
+
+
         app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
         {
             if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
@@ -251,5 +379,5 @@ public static class Endpoints
         })
         .WithName("CreateVehicle");
     }
-    
+
 }
