@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
- 
-namespace ParkingImporter.Import;
+
+namespace V2.Import;
  
 public class VehicleRaw
 {

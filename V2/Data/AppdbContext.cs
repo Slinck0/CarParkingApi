@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Models;
+using V2.Models;
 
-namespace ParkingImporter.Data;
+namespace V2.Data;
 
 public class AppDbContext : DbContext
 {

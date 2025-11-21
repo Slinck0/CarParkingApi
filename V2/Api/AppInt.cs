@@ -1,11 +1,8 @@
-using System.IO;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using ParkingImporter.Data;
-using ParkingImporter.Import;
+using V2.Data;
+using V2.Import;
 
-namespace Jsonimporter.Api
+namespace V2.Api
 {
     public static class AppInt
     {
@@ -42,25 +39,25 @@ namespace Jsonimporter.Api
             if (File.Exists(ResolvePath(usersPath)))
             {
                 await UsersImporter.ImportAsync(db, ResolvePath(usersPath));
-                System.Console.WriteLine("users import gereed ✅");
+                Console.WriteLine("users import gereed ✅");
             }
             if (File.Exists(ResolvePath(vehiclesPath))){
                 await VehiclesImporter.ImportAsync(db, ResolvePath(vehiclesPath));
-                System.Console.WriteLine("Vehicles import gereed ✅");
+                Console.WriteLine("Vehicles import gereed ✅");
             }
             if (File.Exists(ResolvePath(lotsPath))){
                 await LotsImporter.ImportAsync(db, ResolvePath(lotsPath));
-                System.Console.WriteLine("Parking import gereed ✅");
+                Console.WriteLine("Parking import gereed ✅");
             }
 
             if (File.Exists(ResolvePath(reservationsPath))){
                 await ReservationsImporter.ImportAsync(db, ResolvePath(reservationsPath));
-                System.Console.WriteLine("reservations import gereed ✅");
+                Console.WriteLine("reservations import gereed ✅");
             }
 
             if (File.Exists(ResolvePath(paymentsPath))){
                 await PaymentsImporter.ImportAsync(db, ResolvePath(paymentsPath));
-                System.Console.WriteLine("betalingenimport gereed ✅");
+                Console.WriteLine("betalingenimport gereed ✅");
             }
 
             Console.WriteLine("Alle imports gereed ✅");

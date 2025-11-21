@@ -1,14 +1,11 @@
-﻿using Jsonimporter.Api;
+﻿using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using ParkingApi.Endpoints;
-using ParkingApi.Services;
-using ParkingImporter.Data;
-using System.Text;
+using V2.Api;
+using V2.Data;
+using V2.Services;
 
 public class Program
 {

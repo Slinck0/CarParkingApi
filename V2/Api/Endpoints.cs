@@ -1,16 +1,12 @@
-using System.Data.Common;
-using System.Security.Principal;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
-using ParkingApi.Services;
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims; // als je claims leest
+using V2.Data;
+using V2.Models;
+using V2.Services;
+
+// als je claims leest
 
 
-namespace ParkingApi.Endpoints;
+namespace V2.Api;
 
 public static class Endpoints
 {

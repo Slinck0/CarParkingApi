@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ParkingImporter.Models;
+namespace V2.Models;
 
 public class Vehicle
 {

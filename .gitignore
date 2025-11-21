@@ -41,3 +41,6 @@ V2/Data_json/**
 *.user
 *.suo
  
+v2/obj/
+v2/bin/
+v2/.idea
