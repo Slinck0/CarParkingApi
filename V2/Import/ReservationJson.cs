@@ -1,4 +1,4 @@
-namespace ParkingImporter.Import;
+namespace V2.Import;
 
 public class ReservationRaw
 {

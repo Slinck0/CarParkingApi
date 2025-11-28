@@ -2,10 +2,10 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
- 
-namespace ParkingImporter.Import;
+using V2.Data;
+using V2.Models;
+
+namespace V2.Import;
  
 public static class VehiclesImporter
 {

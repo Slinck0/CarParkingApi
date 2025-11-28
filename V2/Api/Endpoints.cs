@@ -1,9 +1,12 @@
-using ParkingImporter.Data;
-using ParkingImporter.Models;
-using ParkingApi.Services;
 using Microsoft.EntityFrameworkCore;
+using V2.Data;
+using V2.Models;
+using V2.Services;
 
-namespace ParkingApi.Endpoints;
+// als je claims leest
+
+
+namespace V2.Api;
 
 public static class Endpoints
 {
@@ -41,7 +44,7 @@ public static class Endpoints
             db.Users.Add(user);
             db.SaveChanges();
             return Results.Created($"/users/{user.Id}", new { user.Id, user.Username, user.Email });
-        }).WithTags("Authentication");
+        });
 
         app.MapPost("/login", async (LoginRequest req, AppDbContext db, TokenService token) =>
         {
@@ -65,9 +68,9 @@ public static class Endpoints
                 token = jwt,
                 user = new UserResponse(user.Id, user.Username, user.Role.ToString())
             });
-        }).WithTags("Authentication");
+        });
 
-        var reservationGroup = app.MapGroup("/reservations").RequireAuthorization().WithTags("Reservations");
+        var reservationGroup = app.MapGroup("/reservations").RequireAuthorization();
 
         reservationGroup.MapPost("", async (HttpContext http, ReservationRequest req, AppDbContext db) =>
         {
@@ -108,7 +111,7 @@ public static class Endpoints
                 StartTime = startDate,
                 EndTime = endDate,
                 CreatedAt = DateTime.UtcNow,
-                Status = ReservationStatus.confirmed,
+                Status = ReservationStatus.pending,
                 Cost = price
             };
 
@@ -229,12 +232,29 @@ public static class Endpoints
 
 
             });
-
         });
-        app.MapPost("/vehicles", async (Vehicle vehicle, AppDbContext db) =>
+        app.MapPost("/vehicles", async (HttpContext http, Vehicle vehicle, AppDbContext db) =>
         {
+            var nextID = db.Vehicles.Any() ? await db.Vehicles.MaxAsync(v => v.Id) + 1 : 1;
+            vehicle.Id = nextID;
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            vehicle.UserId = Convert.ToInt32(userIdClaim);
+
+            vehicle.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
+
             if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
                 return Results.BadRequest("License plate is required.");
+
+            if (string.IsNullOrWhiteSpace(vehicle.Model))
+                return Results.BadRequest("Model is required.");
+
+            if (string.IsNullOrWhiteSpace(vehicle.Color))
+                return Results.BadRequest("Color is required.");
+
+            if (string.IsNullOrWhiteSpace(vehicle.Make))
+                return Results.BadRequest("Make is required.");
 
             if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
                 return Results.Conflict("A vehicle with this license plate already exists.");
@@ -244,131 +264,206 @@ public static class Endpoints
 
             return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
         })
-        .WithName("CreateVehicle")
-        .WithTags("Vehicles");
+        .WithName("CreateVehicle");
 
-        app.MapPost("/parkinglots/{id}/sessions/start", async (int id, AppDbContext db, HttpContext http, StartStopSessionRequest req) =>
+        app.MapGet("/vehicles", async (HttpContext http, AppDbContext db) =>
         {
-            var parkingLot = await db.ParkingLots.FindAsync(id);
-            if (parkingLot == null)
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
             {
-                return Results.NotFound("Parking lot not found.");
-            }
-            int.TryParse(
-                http.User?.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value,
-                out var userId);
-            var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.LicensePlate == req.LicensePlate && v.UserId == userId);
-            if (vehicle == null)
-            {
-                return Results.NotFound("Vehicle not found.");
+                return Results.Unauthorized();
             }
 
-            var session = new ParkingSessions
+            int userId = Convert.ToInt32(userIdClaim);
+
+            var vehicles = await db.Vehicles
+                .Where(v => v.UserId == userId)
+                .ToListAsync();
+
+            return Results.Ok(vehicles);
+        });
+
+        app.MapPut("/vehicles/{id}", async (int id, HttpContext http, Vehicle updatedVehicle, AppDbContext db) =>
+        {
+            var vehicle = await db.Vehicles.FindAsync(id);
+            if (vehicle == null)
+                return Results.NotFound("Vehicle not found.");
+
+            var userIdClaim = http.User?.Claims
+            .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || vehicle.UserId != Convert.ToInt32(userIdClaim))
             {
-                UserId = userId,
-                VehicleId = vehicle.Id,
-                StartTime = DateTime.UtcNow,
-                LicensePlate = req.LicensePlate
+                return Results.Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(updatedVehicle.LicensePlate))
+                return Results.BadRequest("License plate is required.");
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Model))
+                return Results.BadRequest("Model is required.");
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Color))
+                return Results.BadRequest("Color is required.");
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Make))
+                return Results.BadRequest("Make is required.");
+
+            if (await db.Vehicles.AnyAsync(v => v.LicensePlate == updatedVehicle.LicensePlate && v.Id != id))
+                return Results.Conflict("A vehicle with this license plate already exists.");
+
+            vehicle.LicensePlate = updatedVehicle.LicensePlate;
+            vehicle.Model = updatedVehicle.Model;
+            vehicle.Color = updatedVehicle.Color;
+            vehicle.Make = updatedVehicle.Make;
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(vehicle);
+        });
+        app.MapDelete("vehicles/{id}", async (int id, HttpContext http, AppDbContext db) =>
+        {
+            var vehicle = await db.Vehicles.FindAsync(id);
+            if (vehicle == null)
+                return Results.NotFound("Vehicle not found.");
+
+            var userIdClaim = http.User?.Claims
+            .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || vehicle.UserId != Convert.ToInt32(userIdClaim))
+            {
+                return Results.Unauthorized();
+            }
+
+            db.Vehicles.Remove(vehicle);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new { status = "Success", message = "Vehicle deleted successfully." });
+        });
+
+        // GET /profile
+        app.MapGet("/profile", async (HttpContext http, AppDbContext db) =>
+        {
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            var profile = new
+            {
+                user.Id,
+                user.Username,
+                user.Name,
+                user.Email,
+                user.Phone,
+                user.Role,
+                user.BirthYear,
+                user.CreatedAt,
+                user.Active
             };
-            db.ParkingSessions.Add(session);
-            await db.SaveChangesAsync();
 
-            return Results.Ok(new
-            {
-                message = $"Session started for vehicle {req.LicensePlate} at parking lot {parkingLot.Name}."
-            });
-        }).RequireAuthorization().WithTags("Sessions");
+            return Results.Ok(profile);
+        })
+        .RequireAuthorization();
 
-        app.MapPost("/parkinglots/{id}/sessions/stop", async (int id, AppDbContext db, HttpContext http, StartStopSessionRequest req) =>
+        // PUT /profile 
+        app.MapPut("/profile", async (HttpContext http, AppDbContext db, UpdateProfileRequest req) =>
         {
-            var parkingLot = await db.ParkingLots.FindAsync(id);
-            if (parkingLot == null)
-            {
-                return Results.NotFound("Parking lot not found.");
-            }
-            int.TryParse(
-                http.User?.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value,
-                out var userId);
+            // Read the userId from claim
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
-            var vehicle = await db.Vehicles
-                .FirstOrDefaultAsync(v => v.LicensePlate == req.LicensePlate && v.UserId == userId);
-            if (vehicle == null)
-            {
-                return Results.NotFound("Vehicle not found.");
-            }
-            var session = await db.ParkingSessions
-                .Where(s => s.VehicleId == vehicle.Id && s.EndTime == null)
-                .OrderByDescending(s => s.StartTime)
-                .FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
 
-            if (session == null)
-            {
-                return Results.NotFound("Active parking session not found for this vehicle.");
-            }
-            session.EndTime = DateTime.UtcNow;
-            var duration = session.EndTime.Value - session.StartTime;
-            var hours = Math.Ceiling(duration.TotalHours);
-            var (price, _, _) = Helpers.CalculatePrice(parkingLot, session.StartTime, session.EndTime.Value);
-            var Cost = (decimal)price;
-            session.Cost = Cost;
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
 
-            await db.SaveChangesAsync();
-
-            return Results.Ok(new
-            {
-                message = $"Session stopped for vehicle {req.LicensePlate} at parking lot {parkingLot.Name}."
-            });
-        }).RequireAuthorization().WithTags("Sessions");
-
-        app.MapPost("/parking-lots", async (ParkingLotCreate req, AppDbContext db) =>
-        {
             if (string.IsNullOrWhiteSpace(req.Name) ||
-                req.Capacity <= 0 ||
-                string.IsNullOrWhiteSpace(req.Location) ||
-                string.IsNullOrWhiteSpace(req.Address) ||
-                req.Tariff <= 0 ||
-                req.DayTariff == null ||
-                req.Lat == 0 ||
-                req.Lng == 0)
+                string.IsNullOrWhiteSpace(req.Email) ||
+                string.IsNullOrWhiteSpace(req.PhoneNumber) ||
+                req.BirthYear <= 0)
             {
-                return Results.BadRequest("Invalid parking lot data.");
+                return Results.BadRequest("Name, Email, PhoneNumber and BirthYear are required.");
             }
 
-            var parkingLot = new ParkingLot
+            if (!req.Email.Contains("@") || !req.Email.Contains("."))
             {
-                Name = req.Name,
-                Capacity = req.Capacity,
-                Location = req.Location,
-                Address = req.Address,
-                Tariff = req.Tariff,
-                DayTariff = req.DayTariff,
-                Lat = req.Lat,
-                Lng = req.Lng,
-                Reserved = 0,
-                Status = req.Status,
-                ClosedReason = req.ClosedReason,
-                ClosedDate = req.ClosedDate,
-                CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow)
-            };
+                return Results.BadRequest("Invalid email format.");
+            }
 
-            db.ParkingLots.Add(parkingLot);
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            // Check if new email is already used by another user
+            var emailExists = await db.Users
+                .AnyAsync(u => u.Email == req.Email && u.Id != user.Id);
+
+            if (emailExists)
+            {
+                return Results.Conflict("Email is already in use by another account.");
+            }
+
+            user.Name = req.Name;
+            user.Email = req.Email;
+            user.Phone = req.PhoneNumber;
+            user.BirthYear = req.BirthYear;
+
             await db.SaveChangesAsync();
 
-            return Results.Created($"/parking-lots/{parkingLot.Id}", new
+            var profile = new
             {
-                message = "Parking lot created successfully.",
-                parkingLotId = parkingLot.Id,
-                parkingLotName = parkingLot.Name,
-                parkingLotAddress = parkingLot.Address
+                user.Id,
+                user.Username,
+                user.Name,
+                user.Email,
+                user.Phone,
+                user.Role,
+                user.BirthYear,
+                user.CreatedAt,
+                user.Active
+            };
+
+            return Results.Ok(profile);
+        })
+        .RequireAuthorization();
+
+        // DELETE /profile 
+        app.MapDelete("/profile", async (HttpContext http, AppDbContext db) =>
+        {
+            // Read userId from claims
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Results.NotFound("User not found.");
+
+            // Delete the user account
+            db.Users.Remove(user);
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                status = "Success",
+                message = "User account deleted successfully."
             });
-
-        }).RequireAuthorization("ADMIN").WithTags("ParkingLots");
-
-
-
-
-
+        })
+        .RequireAuthorization();
     }
-}
-    
 
+}

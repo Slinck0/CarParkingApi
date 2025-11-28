@@ -1,5 +1,4 @@
-namespace ParkingImporter.Models;
-
+namespace V2.Models;
 
 public enum ReservationStatus { pending, confirmed, cancelled }
 

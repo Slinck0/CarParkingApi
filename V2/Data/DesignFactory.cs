@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace ParkingImporter.Data;
+namespace V2.Data;
 
 public class DesignTimeFactory : IDesignTimeDbContextFactory<AppDbContext>
 {

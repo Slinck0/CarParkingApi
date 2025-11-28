@@ -1,6 +1,11 @@
-﻿using ParkingApi.Endpoints;
-using ParkingApi.Services;
-
+﻿﻿using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using V2.Api;
+using V2.Data;
+using V2.Services;
 
 public class Program
 {
@@ -19,6 +24,16 @@ public class Program
         app.UseAuthorization();
 
         app.MapEndpoints();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            if(args.Contains("import"))
+            {
+                Console.WriteLine("🚀 Starten importeren JSON-data...");
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                AppInt.ImportJson().Wait();
+            }
+        }
 
         app.Run();
 

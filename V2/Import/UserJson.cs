@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+namespace V2.Import;
+
 public class UserRaw
 {
     public string? id { get; set; }

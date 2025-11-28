@@ -1,25 +1,18 @@
-using System.Data.Common;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using ParkingImporter.Models;
-namespace ParkingApi.Services;
+using V2.Models;
 
-public class TokenService
+namespace V2.Services;
+
+public class TokenService(IConfiguration config)
 {
-    private readonly IConfiguration _config;
-    public TokenService(IConfiguration config)
-    {
-        _config = config;
-    }
-
     public string CreateToken(User user)
     {
-        var jwtSection = _config.GetSection("Jwt");
+        var jwtSection = config.GetSection("Jwt");
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!));
-        var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
         {
@@ -34,7 +27,7 @@ public class TokenService
             claims: claims,
             notBefore: DateTime.UtcNow,
             expires: DateTime.UtcNow.AddHours(2),
-            signingCredentials: creds
+            signingCredentials: credentials
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);

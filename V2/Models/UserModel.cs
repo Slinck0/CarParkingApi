@@ -1,4 +1,4 @@
-namespace ParkingImporter.Models;
+namespace V2.Models;
 
 public class User
 {

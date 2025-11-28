@@ -1,11 +1,10 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
 
-namespace ParkingImporter.Import;
+namespace V2.Import;
 
 public static class UsersImporter
 {

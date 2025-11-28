@@ -1,4 +1,4 @@
-namespace ParkingImporter.Import;
+namespace V2.Import;
 
 public class Coordinates { public double lat { get; set; } public double lng { get; set; } }
 
