@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
 using V2.Services;
+using System.Text.RegularExpressions;
 
 // als je claims leest
 
@@ -233,6 +234,8 @@ public static class Endpoints
 
             });
         });
+
+        // Create a new vehicle
         app.MapPost("/vehicles", async (HttpContext http, Vehicle vehicle, AppDbContext db) =>
         {
             var nextID = db.Vehicles.Any() ? await db.Vehicles.MaxAsync(v => v.Id) + 1 : 1;
@@ -244,17 +247,17 @@ public static class Endpoints
 
             vehicle.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
 
-            if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
-                return Results.BadRequest("License plate is required.");
+            if (string.IsNullOrWhiteSpace(vehicle.LicensePlate) || !Regex.IsMatch(vehicle.LicensePlate, @"^[A-Z0-9-]+$") || vehicle.LicensePlate.Length < 2 || vehicle.LicensePlate.Length > 10)
+                return Results.BadRequest("License plate is invalid.");
 
-            if (string.IsNullOrWhiteSpace(vehicle.Model))
-                return Results.BadRequest("Model is required.");
+            if (string.IsNullOrWhiteSpace(vehicle.Model) || !Regex.IsMatch(vehicle.Model, @"^[a-zA-Z0-9\s-]+$"))
+                return Results.BadRequest("Model is invalid.");
 
-            if (string.IsNullOrWhiteSpace(vehicle.Color))
-                return Results.BadRequest("Color is required.");
+            if (string.IsNullOrWhiteSpace(vehicle.Color) || !Regex.IsMatch(vehicle.Color, @"^[a-zA-Z]+$"))
+                return Results.BadRequest("Color is invalid.");
 
-            if (string.IsNullOrWhiteSpace(vehicle.Make))
-                return Results.BadRequest("Make is required.");
+            if (string.IsNullOrWhiteSpace(vehicle.Make) || !Regex.IsMatch(vehicle.Make, @"^[a-zA-Z0-9\s-]+$"))
+                return Results.BadRequest("Make is invalid.");
 
             if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
                 return Results.Conflict("A vehicle with this license plate already exists.");
@@ -266,6 +269,7 @@ public static class Endpoints
         })
         .WithName("CreateVehicle");
 
+        // Get all vehicles for the authenticated user
         app.MapGet("/vehicles", async (HttpContext http, AppDbContext db) =>
         {
             var userIdClaim = http.User?.Claims
@@ -284,9 +288,11 @@ public static class Endpoints
 
             return Results.Ok(vehicles);
         });
-
+        // Update a vehicle
         app.MapPut("/vehicles/{id}", async (int id, HttpContext http, Vehicle updatedVehicle, AppDbContext db) =>
         {
+            if(updatedVehicle == null)
+                return Results.BadRequest("Updated vehicle data is required.");
             var vehicle = await db.Vehicles.FindAsync(id);
             if (vehicle == null)
                 return Results.NotFound("Vehicle not found.");
@@ -294,32 +300,36 @@ public static class Endpoints
             var userIdClaim = http.User?.Claims
             .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
-            if (string.IsNullOrEmpty(userIdClaim) || vehicle.UserId != Convert.ToInt32(userIdClaim))
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId) || vehicle.UserId != userId)
             {
                 return Results.Unauthorized();
             }
 
-            if (string.IsNullOrWhiteSpace(updatedVehicle.LicensePlate))
-                return Results.BadRequest("License plate is required.");
-            if (string.IsNullOrWhiteSpace(updatedVehicle.Model))
-                return Results.BadRequest("Model is required.");
-            if (string.IsNullOrWhiteSpace(updatedVehicle.Color))
-                return Results.BadRequest("Color is required.");
-            if (string.IsNullOrWhiteSpace(updatedVehicle.Make))
-                return Results.BadRequest("Make is required.");
+            if (string.IsNullOrWhiteSpace(updatedVehicle.LicensePlate) || !Regex.IsMatch(updatedVehicle.LicensePlate, @"^[A-Z0-9-]+$") || updatedVehicle.LicensePlate.Length < 2 || updatedVehicle.LicensePlate.Length > 10)
+                return Results.BadRequest("License plate is invalid.");
+
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Model) || !Regex.IsMatch(updatedVehicle.Model, @"^[a-zA-Z0-9\s-]+$"))
+                return Results.BadRequest("Model is invalid.");
+
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Color) || !Regex.IsMatch(updatedVehicle.Color, @"^[a-zA-Z]+$"))
+                return Results.BadRequest("Color is invalid.");
+
+            if (string.IsNullOrWhiteSpace(updatedVehicle.Make) || !Regex.IsMatch(updatedVehicle.Make, @"^[a-zA-Z0-9\s-]+$"))
+                return Results.BadRequest("Make is invalid.");
 
             if (await db.Vehicles.AnyAsync(v => v.LicensePlate == updatedVehicle.LicensePlate && v.Id != id))
                 return Results.Conflict("A vehicle with this license plate already exists.");
 
-            vehicle.LicensePlate = updatedVehicle.LicensePlate;
-            vehicle.Model = updatedVehicle.Model;
-            vehicle.Color = updatedVehicle.Color;
-            vehicle.Make = updatedVehicle.Make;
+            updatedVehicle.LicensePlate = updatedVehicle.LicensePlate.Trim();
+            updatedVehicle.Model = updatedVehicle.Model.Trim();
+            updatedVehicle.Color = updatedVehicle.Color.Trim();
+            updatedVehicle.Make = updatedVehicle.Make.Trim();
 
             await db.SaveChangesAsync();
 
             return Results.Ok(vehicle);
         });
+        // Delete a vehicle
         app.MapDelete("vehicles/{id}", async (int id, HttpContext http, AppDbContext db) =>
         {
             var vehicle = await db.Vehicles.FindAsync(id);
