@@ -27,7 +27,16 @@ public static class JwtExtensions
                 };
             });
 
-        services.AddAuthorization();
+        // HIER: policies definiëren
+        services.AddAuthorization(options =>
+        {
+            // Policy met naam "ADMIN"
+            options.AddPolicy("ADMIN", policy =>
+            {
+                // Vereist claim type "role" (ClaimTypes.Role) met waarde "Admin"
+                policy.RequireRole("Admin"); // of "ADMIN", afhankelijk van je enum/DB
+            });
+        });
 
         return services;
     }
