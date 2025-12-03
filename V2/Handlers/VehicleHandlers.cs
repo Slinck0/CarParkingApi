@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
 
 public static class VehicleHandlers
 {
-    public static async Task<IResult> CreateVehicle(HttpContext http, Vehicle vehicle, AppDbContext db)
+    public static async Task<IResult> CreateVehicle(HttpContext http, VehicleModel vehicle, AppDbContext db)
     {
         var userId = ClaimHelper.GetUserId(http);
         if (userId == 0) return Results.Unauthorized();
@@ -44,7 +44,7 @@ public static class VehicleHandlers
         return Results.Ok(vehicles);
     }
 
-    public static async Task<IResult> UpdateVehicle(int id, HttpContext http, Vehicle updatedVehicle, AppDbContext db)
+    public static async Task<IResult> UpdateVehicle(int id, HttpContext http, VehicleModel updatedVehicle, AppDbContext db)
     {
         var vehicle = await db.Vehicles.FindAsync(id);
         if (vehicle == null)

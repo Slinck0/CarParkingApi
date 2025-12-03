@@ -8,7 +8,7 @@ namespace V2.Services;
 
 public class TokenService(IConfiguration config)
 {
-    public string CreateToken(User user)
+    public string CreateToken(UserModel user)
     {
         var jwtSection = config.GetSection("Jwt");
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!));

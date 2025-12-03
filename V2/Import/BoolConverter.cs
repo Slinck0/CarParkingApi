@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace V2.Import;
 
-public sealed class FlexibleBoolConverter : JsonConverter<bool?>
+public sealed class BoolConverter : JsonConverter<bool?>
 {
     public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

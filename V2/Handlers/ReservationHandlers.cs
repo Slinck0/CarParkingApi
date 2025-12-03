@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
 
 public static class ReservationHandlers
 {
@@ -28,9 +28,9 @@ public static class ReservationHandlers
         var userId = ClaimHelper.GetUserId(http);
         if (userId == 0) return Results.Unauthorized();
 
-        var (price, _, _) = Helpers.CalculatePrice(parkingLot, startDate, endDate);
+        var (price, _, _) = CalculateHelpers.CalculatePrice(parkingLot, startDate, endDate);
 
-        var r = new Reservation
+        var r = new ReservationModel
         {
             Id = Guid.NewGuid().ToString("N"),
             UserId = userId,
@@ -133,7 +133,7 @@ public static class ReservationHandlers
         if (parkingLot is null)
             return Results.NotFound("Parking lot not found.");
 
-        var (price, _, _) = Helpers.CalculatePrice(parkingLot, startDate, endDate);
+        var (price, _, _) = CalculateHelpers.CalculatePrice(parkingLot, startDate, endDate);
 
         reservation.ParkingLotId = parkingLot.Id;
         reservation.VehicleId = req.VehicleId;

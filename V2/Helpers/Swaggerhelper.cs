@@ -1,6 +1,5 @@
-
 using Microsoft.OpenApi.Models;
-public static class SwaggerExtensions
+public static class SwaggerHelper
 {
     public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services)
     {

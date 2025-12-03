@@ -14,7 +14,7 @@ public static class ReservationsImporter
         var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var raw  = JsonSerializer.Deserialize<List<ReservationRaw>>(json, opts) ?? new();
 
-        var valid = new List<Reservation>();
+        var valid = new List<ReservationModel>();
         var bad   = new List<ReservationRaw>();
 
         int n = 0;
@@ -35,7 +35,7 @@ public static class ReservationsImporter
 
             var status = Enum.TryParse<ReservationStatus>(r.status, true, out var st) ? st : ReservationStatus.pending;
 
-            valid.Add(new Reservation {
+            valid.Add(new ReservationModel {
                 Id = r.id,
                 UserId = userId,
                 ParkingLotId = lotId,

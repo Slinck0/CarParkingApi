@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
 public static class ParkingLotHandlers
 {
     public static async Task<IResult> CreateParkingLot(ParkingLotCreate req, AppDbContext db)
@@ -10,7 +10,7 @@ public static class ParkingLotHandlers
             return Results.BadRequest("Invalid parking lot data.");
         }
 
-        var parkingLot = new ParkingLot
+        var parkingLot = new ParkingLotModel
         {
             Name = req.Name,
             Capacity = req.Capacity,

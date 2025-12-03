@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
 
 
 public static class SessionHandlers
@@ -22,7 +22,7 @@ public static class SessionHandlers
             return Results.NotFound("Vehicle not found.");
         }
 
-        var session = new ParkingSessions
+        var session = new ParkingSessionModel
         {
             UserId = userId,
             VehicleId = vehicle.Id,
@@ -68,7 +68,7 @@ public static class SessionHandlers
 
         session.EndTime = DateTime.UtcNow;
 
-        var (price, _, _) = Helpers.CalculatePrice(parkingLot, session.StartTime, session.EndTime.Value);
+        var (price, _, _) = CalculateHelpers.CalculatePrice(parkingLot, session.StartTime, session.EndTime.Value);
         session.Cost = price;
 
         await db.SaveChangesAsync();

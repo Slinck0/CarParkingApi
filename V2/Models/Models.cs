@@ -1,9 +1,10 @@
-public namespace V2.Models;
+namespace V2.Models;
 
-record RegisterUserRequest(string Username, string Password, string Name, string PhoneNumber, string Email, int BirthYear);
+public record RegisterUserRequest(string Username, string Password, string Name, string PhoneNumber, string Email, int BirthYear);
 public record LoginRequest(string Username, string Password);
 public record UserResponse(int Id, string Username, string Role);
 public record StartStopSessionRequest(string LicensePlate);
+
 public record ParkingLotCreate(
     string Name,
     string Location,

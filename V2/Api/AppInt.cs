@@ -46,7 +46,7 @@ namespace V2.Api
                 Console.WriteLine("Vehicles import gereed ✅");
             }
             if (File.Exists(ResolvePath(lotsPath))){
-                await LotsImporter.ImportAsync(db, ResolvePath(lotsPath));
+                await ParkingLotsImporter.ImportAsync(db, ResolvePath(lotsPath));
                 Console.WriteLine("Parking import gereed ✅");
             }
 

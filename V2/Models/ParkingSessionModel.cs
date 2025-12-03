@@ -1,4 +1,4 @@
-public class ParkingSessions
+public class ParkingSessionModel
 {
     public int Id { get; set; }
     public int UserId { get; set; }

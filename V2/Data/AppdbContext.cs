@@ -5,12 +5,12 @@ namespace V2.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<ParkingLot> ParkingLots => Set<ParkingLot>();
-    public DbSet<Reservation> Reservations => Set<Reservation>();
-    public DbSet<Payment> Payments => Set<Payment>();
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
-    public DbSet<ParkingSessions> ParkingSessions => Set<ParkingSessions>();
+    public DbSet<ParkingLotModel> ParkingLots => Set<ParkingLotModel>();
+    public DbSet<ReservationModel> Reservations => Set<ReservationModel>();
+    public DbSet<PaymentModel> Payments => Set<PaymentModel>();
+    public DbSet<UserModel> Users => Set<UserModel>();
+    public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
+    public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
     
 
 
@@ -18,7 +18,7 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
-        mb.Entity<ParkingLot>(e =>
+        mb.Entity<ParkingLotModel>(e =>
         {
             e.ToTable("parking_lot");
             e.HasKey(x => x.Id);
@@ -33,7 +33,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.CreatedAt);
         });
 
-        mb.Entity<Reservation>(e =>
+        mb.Entity<ReservationModel>(e =>
         {
             e.ToTable("reservation");
             e.HasKey(x => x.Id);
@@ -45,7 +45,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.StartTime, x.EndTime });
         });
 
-        mb.Entity<Payment>(e =>
+        mb.Entity<PaymentModel>(e =>
         {
             e.ToTable("payment");
             e.HasKey(x => x.Transaction); 
@@ -57,7 +57,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Bank).HasMaxLength(64);
             e.Property(x => x.Hash).HasMaxLength(64);
         });
-        mb.Entity<User>(e =>
+        mb.Entity<UserModel>(e =>
         {
             e.ToTable("user");
             e.HasKey(x => x.Id);
@@ -65,7 +65,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Email).HasMaxLength(255).IsRequired();
             e.HasIndex(x => x.Email);
         });
-        mb.Entity<Vehicle>(e =>
+        mb.Entity<VehicleModel>(e =>
         {
             e.ToTable("vehicle");
             e.HasKey(x => x.Id);
@@ -79,7 +79,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.CreatedAt);
         });
-        mb.Entity<ParkingSessions>(e =>
+        mb.Entity<ParkingSessionModel>(e =>
         {
             e.ToTable("parking_sessions");
             e.HasKey(x => x.Id);

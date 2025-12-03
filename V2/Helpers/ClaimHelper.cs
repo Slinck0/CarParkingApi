@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
-using ParkingApi.Services;
+using V2.Data;
+using V2.Models;
+using V2.Services;
 
 // Hulp methode om de UserId uit de claims te halen
 // Deze moet beschikbaar zijn voor alle handlers die claims nodig hebben

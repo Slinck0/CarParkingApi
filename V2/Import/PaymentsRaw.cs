@@ -1,6 +1,6 @@
 namespace V2.Import;
 
-public class PaymentRaw
+public class PaymentsRaw
 {
     public string transaction { get; set; } = null!;
     public decimal amount { get; set; }

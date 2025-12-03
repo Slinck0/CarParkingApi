@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
 
 // Deze Helper-methode (ClaimHelper.GetUserId) is afkomstig uit de vorige refactoring
 // en is nodig voor alle geautoriseerde handlers.

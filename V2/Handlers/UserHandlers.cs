@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
-using ParkingApi.Services;
+using V2.Data;
+using V2.Models;
+using V2.Services;
 
 public static class UserHandlers
 {
@@ -21,7 +21,7 @@ public static class UserHandlers
         {
             return Results.Conflict("Bad request:/nUsername or Email already exists.");
         }
-        var user = new User
+        var user = new UserModel
         {
             Username = req.Username,
             Password = BCrypt.Net.BCrypt.HashPassword(req.Password),

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using ParkingImporter.Data;
+using V2.Data;
 
 #nullable disable
 
@@ -20,7 +20,7 @@ namespace V2.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
 
-            modelBuilder.Entity("ParkingImporter.Models.ParkingLot", b =>
+            modelBuilder.Entity("V2.Models.ParkingLot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

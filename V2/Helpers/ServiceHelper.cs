@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-namespace ParkingApi.Services;
-public static class ServiceCollectionExtensions
+using V2.Data;
+namespace V2.Services;
+public static class ServiceHelper
 {
     public static IServiceCollection AddAppServices(this IServiceCollection services, IConfiguration config)
     {
