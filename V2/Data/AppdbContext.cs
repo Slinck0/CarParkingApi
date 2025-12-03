@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<ParkingSessions> ParkingSessions => Set<ParkingSessions>();
     
 
 
@@ -77,6 +78,21 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.LicensePlate).IsUnique();
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.CreatedAt);
+        });
+        mb.Entity<ParkingSessions>(e =>
+        {
+            e.ToTable("parking_sessions");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.UserId).IsRequired();
+            e.Property(x => x.VehicleId).IsRequired();
+            e.Property(x => x.LicensePlate).HasMaxLength(32);
+            e.Property(x => x.StartTime).IsRequired();
+            e.Property(x => x.EndTime);
+            e.Property(x => x.Cost).HasColumnType("decimal(10,2)");
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.VehicleId);
+            e.HasIndex(x => x.StartTime);
+            e.HasIndex(x => x.EndTime);
         });
     }
 
