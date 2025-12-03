@@ -6,13 +6,112 @@ using System.Text.RegularExpressions;
 
 // als je claims leest
 
-
 namespace V2.Api;
 
 public static class Endpoints
 {
     public static void MapEndpoints(this WebApplication app)
     {
+        var paymentGroup = app.MapGroup("/payments").RequireAuthorization();
+
+        // POST /payments 
+        paymentGroup.MapPost("", async (HttpContext http, CreatePaymentRequest req, AppDbContext db) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.ReservationId) || string.IsNullOrWhiteSpace(req.Method))
+            {
+                return Results.BadRequest("ReservationId and Method are required.");
+            }
+
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            var reservation = await db.Reservations.FirstOrDefaultAsync(r => r.Id == req.ReservationId);
+            if (reservation == null)
+                return Results.NotFound("Reservation not found.");
+
+            if (reservation.UserId != userId)
+                return Results.Forbid();
+
+            var amount = reservation.Cost;
+
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var initiator = user?.Username ?? userId.ToString();
+
+            var now = DateTimeOffset.UtcNow;
+            var transactionId = Guid.NewGuid().ToString("N");
+            var hash = Guid.NewGuid().ToString();
+
+            var payment = new Payment
+            {
+                Transaction = transactionId,
+                Amount = amount,
+                Initiator = initiator,
+                CreatedAt = now,
+                CompletedAt = now,
+                Hash = hash,
+                TAmount = amount,
+                TDate = now,
+                Method = req.Method,
+                Issuer = string.Empty,
+                Bank = string.Empty,
+                ReservationId = reservation.Id,
+                Status = PaymentStatus.Completed
+            };
+
+            db.Payments.Add(payment);
+            await db.SaveChangesAsync();
+
+            var response = new
+            {
+                payment.Transaction,
+                payment.Amount,
+                payment.Method,
+                payment.Status,
+                payment.ReservationId,
+                payment.CreatedAt,
+                payment.CompletedAt
+            };
+
+            return Results.Created($"/payments/{payment.Transaction}", response);
+        });
+
+        // GET /payments/me 
+        paymentGroup.MapGet("/me", async (HttpContext http, AppDbContext db) =>
+        {
+            var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Results.Unauthorized();
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return Results.BadRequest("Invalid user ID in token.");
+
+            var payments = await (
+                from p in db.Payments
+                join r in db.Reservations on p.ReservationId equals r.Id into pr
+                from r in pr.DefaultIfEmpty()
+                where r != null && r.UserId == userId
+                select new
+                {
+                    p.Transaction,
+                    p.Amount,
+                    p.Method,
+                    p.Status,
+                    p.CreatedAt,
+                    p.CompletedAt,
+                    ReservationId = p.ReservationId
+                }).ToListAsync();
+
+            return Results.Ok(payments);
+        });
+
         app.MapGet("/Health", () => "Parking API is running...");
         app.MapPost("/register", (RegisterUserRequest req, AppDbContext db) =>
         {
@@ -291,7 +390,7 @@ public static class Endpoints
         // Update a vehicle
         app.MapPut("/vehicles/{id}", async (int id, HttpContext http, Vehicle updatedVehicle, AppDbContext db) =>
         {
-            if(updatedVehicle == null)
+            if (updatedVehicle == null)
                 return Results.BadRequest("Updated vehicle data is required.");
             var vehicle = await db.Vehicles.FindAsync(id);
             if (vehicle == null)

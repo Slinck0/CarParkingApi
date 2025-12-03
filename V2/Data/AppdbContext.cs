@@ -10,10 +10,10 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
-    
 
 
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -47,7 +47,7 @@ public class AppDbContext : DbContext
         mb.Entity<Payment>(e =>
         {
             e.ToTable("payment");
-            e.HasKey(x => x.Transaction); 
+            e.HasKey(x => x.Transaction);
             e.Property(x => x.Amount).HasColumnType("decimal(10,2)");
             e.Property(x => x.TAmount).HasColumnType("decimal(10,2)");
             e.Property(x => x.Initiator).HasMaxLength(64);
