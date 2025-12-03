@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ParkingImporter.Data;
 using ParkingImporter.Models;
 using ParkingApi.Services;
+using V2.Handlers;
 
 namespace ParkingApi.Endpoints;
 
@@ -63,6 +64,19 @@ public static class Endpoints
         // ----------------------------------------------------
         sessionGroup.MapPost("/start", SessionHandlers.StartSession);
         sessionGroup.MapPost("/stop", SessionHandlers.StopSession);
+
+        // ----------------------------------------------------
+        // Billing Endpoints
+        // ----------------------------------------------------
+        var billingGroup = app.MapGroup("/billing").RequireAuthorization().WithTags("Billing");
+        
+        billingGroup.MapGet("", BillingHandlers.GetUpcomingPayments)
+           .WithName("GetUpcomingPayments")
+           .WithDescription("Get upcoming payments for the authenticated user");
+           
+        billingGroup.MapGet("/history", BillingHandlers.GetBillingHistory)
+           .WithName("GetBillingHistory")
+           .WithDescription("Get billing history for the authenticated user");
 
         // ----------------------------------------------------
         // Parking Lot Endpoints
