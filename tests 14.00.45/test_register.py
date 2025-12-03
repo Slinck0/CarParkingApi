@@ -4,8 +4,8 @@ import pytest
 import requests
 
 # ===== Config =====
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")  
-API_VERSION = os.getenv("API_VERSION", "v1").lower()      
+API_VERSION = "v2"  
+BASE_URL = "http://localhost:8000" if API_VERSION == "v1" else "http://localhost:5000"    
 
 def _suffix(n=6):
     return uuid.uuid4().hex[:n]
