@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/V2.csproj": {}
+    "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C/Parking-api/V2/V2.csproj": {}
   },
   "projects": {
-    "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/V2.csproj": {
+    "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C/Parking-api/V2/V2.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/V2.csproj",
+        "projectUniqueName": "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C/Parking-api/V2/V2.csproj",
         "projectName": "V2",
-        "projectPath": "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/V2.csproj",
+        "projectPath": "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C/Parking-api/V2/V2.csproj",
         "packagesPath": "/Users/rensgijzen/.nuget/packages/",
-        "outputPath": "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C#/Parking-api/V2/obj/",
+        "outputPath": "/Users/rensgijzen/Library/CloudStorage/OneDrive-HogeschoolRotterdam/Development C/Parking-api/V2/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/rensgijzen/.nuget/NuGet/NuGet.Config"

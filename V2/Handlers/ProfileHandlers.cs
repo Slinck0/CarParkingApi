@@ -4,7 +4,7 @@ using ParkingImporter.Models;
 
 // Deze Helper-methode (ClaimHelper.GetUserId) is afkomstig uit de vorige refactoring
 // en is nodig voor alle geautoriseerde handlers.
-public static class ProfileHandlers
+public class ProfileHandlers
 {
     // GET /profile
     public static async Task<IResult> GetProfile(HttpContext http, AppDbContext db)

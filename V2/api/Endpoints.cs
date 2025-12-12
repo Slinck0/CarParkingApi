@@ -85,7 +85,14 @@ public static class Endpoints
            .RequireAuthorization("ADMIN").WithTags("ParkingLots");
         app.MapPut("/parking-lots/{id}", ParkingLotHandlers.UpdateParkingLot)
            .RequireAuthorization("ADMIN").WithTags("ParkingLots");
-        app.MapDelete("/parking-lots/{id}", ParkingLotHandlers.DeleteParkingLot)
-           .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+      app.MapDelete("/parking-lots/{id}", ParkingLotHandlers.DeleteParkingLot)
+         .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+
+      app.MapGet("/payments", PaymentHandler.GetPayments)
+         .RequireAuthorization()
+         .WithTags("Payments");
+      app.MapPost("/payments", PaymentHandler.Createpayment)
+         .RequireAuthorization()
+         .WithTags("Payments");
     }
 }

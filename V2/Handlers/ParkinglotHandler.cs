@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ParkingImporter.Data;
 using ParkingImporter.Models;
-public static class ParkingLotHandlers
+public  class ParkingLotHandlers
 {
     public static async Task<IResult> CreateParkingLot(ParkingLotCreate req, AppDbContext db)
     {

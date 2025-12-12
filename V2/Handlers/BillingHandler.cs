@@ -5,12 +5,9 @@ using ParkingImporter.Models;
 
 namespace V2.Handlers;
 
-public static class BillingHandlers
+public  class BillingHandlers
 {
-    /// <summary>
-    /// Get upcoming/pending payments for the authenticated user.
-    /// Route: GET /billing
-    /// </summary>
+   
     public static async Task<IResult> GetUpcomingPayments(ClaimsPrincipal user, AppDbContext db)
     {
         try
