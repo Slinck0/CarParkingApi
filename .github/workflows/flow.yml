@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Tests
-        run: dotnet test V2
+        run: dotnet test ParkingApi.Tests
 
   build:
     name: Build
