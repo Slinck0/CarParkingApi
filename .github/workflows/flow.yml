@@ -11,8 +11,9 @@ jobs:
     name: Unit Testing
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2.1.0 # Note: v2 is deprecated, consider upgrading to v4
-      - run: dotnet test
+      - uses: actions/checkout@v4
+      - name: Run Tests
+        run: dotnet test V2
 
   build:
     name: Build
