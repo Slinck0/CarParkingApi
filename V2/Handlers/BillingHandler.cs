@@ -69,33 +69,60 @@ public  class BillingHandlers
     
 
 
-    public static async Task<IResult> GetBillingHistory(ClaimsPrincipal user, AppDbContext db, HttpContext http)
+    public static async Task<IResult> GetBillingHistory(HttpContext http, AppDbContext db)
     {
         var userIdClaim = http.User?.Claims
                 .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
-        if (string.IsNullOrEmpty(userIdClaim))
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
             return Results.Unauthorized();
 
-        if (!int.TryParse(userIdClaim, out int userId))
-            return Results.BadRequest("Invalid user ID in token.");
-
-        var payments = await (
-            from p in db.Payments
-            join r in db.Reservations on p.ReservationId equals r.Id into pr
-            from r in pr.DefaultIfEmpty()
-            where r != null && r.UserId == userId
-            select new
+       
+        var paidReservations = await db.Reservations
+            .Where(r => r.UserId == userId && r.Status == ReservationStatus.paid)
+            .Select(r => new HistoryItemDto
             {
-                p.Transaction,
-                p.Amount,
-                p.Method,
-                p.Status,
-                p.CreatedAt,
-                p.CompletedAt,
-                ReservationId = p.ReservationId
+                Id = r.Id, 
+                Type = "Reservation",
+                Amount = r.Cost, 
+                Date = r.CreatedAt, 
+                Status = r.Status.ToString(),
+                Description = "Reservation"
             }).ToListAsync();
 
-        return Results.Ok(payments);
+        
+        var rawSessions = await db.ParkingSessions
+            .Where(p => p.UserId == userId && (p.Status == "Paid" || p.Status == "completed")) 
+            .Select(p => new 
+            {
+                p.Id,
+                p.Cost,
+                p.EndTime,
+                p.Status,
+                p.LicensePlate
+            })
+            .ToListAsync();
+
+        
+        var paidSessions = rawSessions.Select(p => new HistoryItemDto
+        {
+            Id = p.Id.ToString(),
+            Type = "ParkingSession",
+            Amount = (decimal)p.Cost,
+            Date = p.EndTime ?? DateTimeOffset.UtcNow, 
+            Status = p.Status ?? "Paid",
+            Description = $"Parking session {p.LicensePlate}"
+        }).ToList();
+
+        // STAP 4: Samenvoegen en sorteren
+        var combinedHistory = paidReservations
+            .Concat(paidSessions)
+            .OrderByDescending(x => x.Date)
+            .ToList();
+
+        return Results.Ok(combinedHistory);
     }
-}
+
+
+
+} 
