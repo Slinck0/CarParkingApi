@@ -1,3 +1,5 @@
+using System.Security.Cryptography.X509Certificates;
+
 public record RegisterUserRequest(string Username, string Password,string Name, string PhoneNumber, string Email, int BirthYear);
 public record LoginRequest(string Username, string Password);
 public record UserResponse(int Id, string Username, string Role);
@@ -40,4 +42,8 @@ public record VehicleRequest(
     string Model,
     int Year,
     string Color
+);
+
+public record CreateAdminRequest(
+    int UserId
 );
