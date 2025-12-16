@@ -28,6 +28,7 @@ public static class Endpoints
         profileGroup.MapGet("", ProfileHandlers.GetProfile);
         profileGroup.MapPut("", ProfileHandlers.UpdateProfile);
         profileGroup.MapDelete("", ProfileHandlers.DeleteProfile);
+        
 
         // ----------------------------------------------------
         // Authorized Groups
@@ -69,5 +70,14 @@ public static class Endpoints
         // ----------------------------------------------------
         app.MapPost("/parking-lots", ParkingLotHandlers.CreateParkingLot)
            .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+
+        // ----------------------------------------------------
+        // Admin Endpoints
+        // ----------------------------------------------------
+        var adminGroup = app.MapGroup("/admin")
+           .RequireAuthorization("ADMIN")
+           .WithTags("Admin");
+
+        adminGroup.MapPut("/users/{id}/toggle-active", ProfileHandlers.UpdateState);
     }
 }

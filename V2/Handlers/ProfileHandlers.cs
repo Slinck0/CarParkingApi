@@ -91,6 +91,29 @@ public static class ProfileHandlers
         return Results.Ok(profile);
     }
 
+    // UpdateState /profile
+    public static async Task<IResult> UpdateState(HttpContext http, AppDbContext db, int id)
+    {
+        var requesterId = ClaimHelper.GetUserId(http);
+        if (requesterId == 0)
+            return Results.Unauthorized();
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        if (user == null)
+            return Results.NotFound("User not found.");
+
+        user.Active = !user.Active;
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            user.Id,
+            user.Username,
+            Active = user.Active
+        });
+    }
+
     // DELETE /profile
     public static async Task<IResult> DeleteProfile(HttpContext http, AppDbContext db)
     {
