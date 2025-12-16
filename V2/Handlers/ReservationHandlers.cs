@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
+using V2.Helpers;
 
 public static class ReservationHandlers
 {
     public static async Task<IResult> CreateReservation(HttpContext http, ReservationRequest req, AppDbContext db)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         if (string.IsNullOrWhiteSpace(req.LicensePlate) || !req.StartDate.HasValue || !req.EndDate.HasValue || req.ParkingLot <= 0 || req.VehicleId <= 0)
         {
             return Results.BadRequest(new
@@ -63,6 +67,9 @@ public static class ReservationHandlers
 
     public static async Task<IResult> GetMyReservations(HttpContext http, AppDbContext db)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var userId = ClaimHelper.GetUserId(http);
         if (userId == 0) return Results.Unauthorized();
 
@@ -83,8 +90,11 @@ public static class ReservationHandlers
         return Results.Ok(reservations);
     }
 
-    public static async Task<IResult> CancelReservation(string id, AppDbContext db)
+    public static async Task<IResult> CancelReservation(HttpContext http, string id, AppDbContext db)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var reservation = await db.Reservations.FirstOrDefaultAsync(r => r.Id == id);
         if (reservation == null)
         {
@@ -104,9 +114,12 @@ public static class ReservationHandlers
 
         return Results.Ok(new { status = "Success", message = "Reservation cancelled successfully." });
     }
-    
-    public static async Task<IResult> UpdateReservation(string id, AppDbContext db, ReservationRequest req)
+
+    public static async Task<IResult> UpdateReservation(HttpContext http, string id, AppDbContext db, ReservationRequest req)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var reservation = await db.Reservations.FirstOrDefaultAsync(r => r.Id == id);
         if (reservation == null)
         {

@@ -1,12 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
+using V2.Helpers;
 
 
 public static class SessionHandlers
 {
     public static async Task<IResult> StartSession(int id, AppDbContext db, HttpContext http, StartStopSessionRequest req)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var parkingLot = await db.ParkingLots.FindAsync(id);
         if (parkingLot == null)
         {
@@ -40,6 +44,9 @@ public static class SessionHandlers
 
     public static async Task<IResult> StopSession(int id, AppDbContext db, HttpContext http, StartStopSessionRequest req)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var parkingLot = await db.ParkingLots.FindAsync(id);
         if (parkingLot == null)
         {
