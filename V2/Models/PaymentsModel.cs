@@ -8,12 +8,16 @@ public enum PaymentStatus
     Pending,
     Failed,
     Refunded
+    
 }
 
-public record CreatePaymentRequest(
-    string ReservationId,
-    string Method
-);
+    public class CreatePaymentRequest
+    {
+        public string? ReservationId { get; set; }
+        public string? ParkingSessionId { get; set; }
+        public string Method { get; set; } = string.Empty;
+        public string? DiscountCode { get; set; }
+    }
 
 public class Payment
 {
@@ -31,9 +35,9 @@ public class Payment
     public string Issuer { get; set; } = null!;
     public string Bank { get; set; } = null!;
 
-    // link to reservation (string, because Reservation.Id is string)
     public string? ReservationId { get; set; }
 
-    // default Completed so old imported rows are treated as completed
     public PaymentStatus Status { get; set; } = PaymentStatus.Completed;
 }
+
+

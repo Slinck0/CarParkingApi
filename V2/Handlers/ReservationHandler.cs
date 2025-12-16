@@ -1,12 +1,15 @@
+using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using ParkingImporter.Data;
 using ParkingImporter.Models;
+
 
 public static class ReservationHandlers
 {
     public static async Task<IResult> CreateReservation(HttpContext http, ReservationRequest req, AppDbContext db)
     {
-        if (string.IsNullOrWhiteSpace(req.LicensePlate) || !req.StartDate.HasValue || !req.EndDate.HasValue || req.ParkingLot <= 0 || req.VehicleId <= 0)
+        if (string.IsNullOrWhiteSpace(req.LicensePlate) || !req.StartDate.HasValue || !req.EndDate.HasValue || req.ParkingLot <= 0 )
         {
             return Results.BadRequest(new
             {
@@ -24,8 +27,9 @@ public static class ReservationHandlers
         var parkingLot = await db.ParkingLots.FirstOrDefaultAsync(p => p.Id == req.ParkingLot);
         if (parkingLot is null)
             return Results.NotFound("Parking lot not found.");
-        
+
         var userId = ClaimHelper.GetUserId(http);
+        var vehicleId = ClaimHelper.LicensePlateHelper(http, req.LicensePlate, db);
         if (userId == 0) return Results.Unauthorized();
 
         var (price, _, _) = Helpers.CalculatePrice(parkingLot, startDate, endDate);
@@ -35,7 +39,7 @@ public static class ReservationHandlers
             Id = Guid.NewGuid().ToString("N"),
             UserId = userId,
             ParkingLotId = parkingLot.Id,
-            VehicleId = req.VehicleId,
+            VehicleId = vehicleId,
             StartTime = startDate,
             EndTime = endDate,
             CreatedAt = DateTime.UtcNow,
@@ -104,8 +108,8 @@ public static class ReservationHandlers
 
         return Results.Ok(new { status = "Success", message = "Reservation cancelled successfully." });
     }
-    
-    public static async Task<IResult> UpdateReservation(string id, AppDbContext db, ReservationRequest req)
+
+    public static async Task<IResult> UpdateReservation(string id, AppDbContext db, ReservationRequest req, HttpContext http)
     {
         var reservation = await db.Reservations.FirstOrDefaultAsync(r => r.Id == id);
         if (reservation == null)
@@ -115,12 +119,12 @@ public static class ReservationHandlers
         
         // Let op: Autorisatie (controleren of dit de reservering van de ingelogde gebruiker is) mist hier!
 
-        if (string.IsNullOrWhiteSpace(req.LicensePlate) || !req.StartDate.HasValue || !req.EndDate.HasValue || req.ParkingLot <= 0 || req.VehicleId <= 0)
+        if (string.IsNullOrWhiteSpace(req.LicensePlate) || !req.StartDate.HasValue || !req.EndDate.HasValue || req.ParkingLot <= 0)
         {
             return Results.BadRequest(new
             {
-                error = "missing_fields",
-                message = "Bad request:/nLicensePlate, StartDate, EndDate, ParkingLot and VehicleId are required."
+                    error = "missing_fields",
+                    message = "Bad request:/nLicensePlate, StartDate, EndDate, ParkingLot and VehicleId are required."
             });
         }
         var startDate = req.StartDate.Value;
@@ -134,9 +138,9 @@ public static class ReservationHandlers
             return Results.NotFound("Parking lot not found.");
 
         var (price, _, _) = Helpers.CalculatePrice(parkingLot, startDate, endDate);
-
+        var vehicleId = ClaimHelper.LicensePlateHelper(http, req.LicensePlate, db);
         reservation.ParkingLotId = parkingLot.Id;
-        reservation.VehicleId = req.VehicleId;
+        reservation.VehicleId = vehicleId;
         reservation.StartTime = startDate;
         reservation.EndTime = endDate;
         reservation.Cost = price;

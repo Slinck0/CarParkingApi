@@ -27,7 +27,9 @@ public static class SessionHandlers
             UserId = userId,
             VehicleId = vehicle.Id,
             StartTime = DateTime.UtcNow,
-            LicensePlate = req.LicensePlate
+            LicensePlate = req.LicensePlate,
+            ParkingLotId = parkingLot.Id,
+            Status = "active"
         };
         db.ParkingSessions.Add(session);
         await db.SaveChangesAsync();
@@ -70,6 +72,8 @@ public static class SessionHandlers
 
         var (price, _, _) = Helpers.CalculatePrice(parkingLot, session.StartTime, session.EndTime.Value);
         session.Cost = price;
+        session.Status = "completed";
+        
 
         await db.SaveChangesAsync();
 

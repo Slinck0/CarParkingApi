@@ -21,8 +21,7 @@ public record ReservationRequest(
     string LicensePlate,
     DateTime? StartDate,
     DateTime? EndDate,
-    int ParkingLot,
-    int VehicleId
+    int ParkingLot
 );
 
 public record UpdateProfileRequest(
@@ -30,4 +29,15 @@ public record UpdateProfileRequest(
     string Email,
     string PhoneNumber,
     int BirthYear
+);
+
+public record VehicleRequest(
+    int UserId,
+    int Id,
+    DateTime CreatedAt,
+    string LicensePlate,
+    string Make,
+    string Model,
+    int Year,
+    string Color
 );

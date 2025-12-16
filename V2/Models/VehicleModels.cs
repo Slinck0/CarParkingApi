@@ -1,8 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace ParkingImporter.Models;
 
 public class Vehicle
 {
+    [JsonIgnore]
     public int Id { get; set; } 
+    [JsonIgnore]
     public int UserId { get; set; }
     public string LicensePlate { get; set; } = null!;
     public string Make { get; set; } = null!;
