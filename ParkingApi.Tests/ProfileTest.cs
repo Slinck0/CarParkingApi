@@ -1,14 +1,9 @@
-using Xunit;
-using Moq;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
-using ParkingApi.Services; 
+using Moq;
 using ParkingApi.Tests.Helpers;
-using System;
-using System.Security.Claims;
-using System.Threading.Tasks;
+using ParkingImporter.Models;
 
 namespace ParkingApi.Tests.Handlers;
 
