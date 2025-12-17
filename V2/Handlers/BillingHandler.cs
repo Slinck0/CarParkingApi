@@ -8,125 +8,121 @@ namespace V2.Handlers;
 public  class BillingHandlers
 {
    
-    public static async Task<IResult> GetUpcomingPayments(ClaimsPrincipal user, AppDbContext db)
+    public static async Task<IResult> GetUpcomingPayments(ClaimsPrincipal user, AppDbContext db, HttpContext http)
     {
-        try
+        var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Results.Unauthorized();
+            
+        if (!int.TryParse(userIdClaim, out int userId))
+            return Results.BadRequest("Invalid user ID in token.");
+
+        var allReservations = await db.Reservations
+            .Where(r => r.UserId == userId)
+            .ToListAsync();
+
+        var reservationsList = allReservations
+            .Where(r => r.Status != ReservationStatus.cancelled && r.Status != ReservationStatus.paid)
+            .ToList();
+
+        var AllparkingList = await db.ParkingSessions
+            .Where(p => p.UserId == userId)
+            .ToListAsync();
+
+        var parkingList = AllparkingList
+        .Where(p => p.Status != "cancelled" && p.Status != "Paid")
+        .ToList();
+
+        var combinedList = new List<object>();
+
+        foreach (var r in reservationsList)
         {
-            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            combinedList.Add(new 
             {
-                return Results.Unauthorized();
-            }
-
-            // 1. Fetch data WITHOUT sorting first (to avoid SQLite DateTimeOffset error)
-            var rawReservations = await db.Reservations
-                .AsQueryable()
-                .Where(r => r.UserId == userId && 
-                            r.Status == ReservationStatus.confirmed && 
-                            r.Cost > 0)
-                .Select(r => new
-                {
-                    Type = "Reservation",
-                    ReservationId = r.Id,
-                    ParkingLotId = r.ParkingLotId,
-                    VehicleId = r.VehicleId,
-                    Amount = (decimal)r.Cost,
-                    Description = $"Reservation at Lot {r.ParkingLotId}",
-                    StartTime = r.StartTime,
-                    EndTime = r.EndTime,
-                    CreatedAt = r.CreatedAt,
-                    Status = r.Status.ToString()
-                })
-                .ToListAsync();
-
-            // 2. Perform sorting in memory
-            var sortedReservations = rawReservations
-                .OrderByDescending(r => r.StartTime)
-                .ToList();
-
-            var totalAmount = sortedReservations.Sum(r => (decimal)r.Amount);
-
-            return Results.Ok(new
-            {
-                success = true,
-                data = new
-                {
-                    upcomingPayments = sortedReservations,
-                    summary = new
-                    {
-                        totalAmount = totalAmount,
-                        count = sortedReservations.Count
-                    }
-                }
+                Id = r.Id,
+                Type = "Reservation",
+                Date = r.StartTime.DateTime, 
+                Amount = r.Cost,
+                Status = r.Status.ToString()
             });
         }
-        catch (Exception ex)
+
+        foreach (var p in parkingList)
         {
-            Console.WriteLine($"Error in GetUpcomingPayments: {ex.Message}");
-            return Results.StatusCode(500);
-        }
-    }
-
-    /// <summary>
-    /// Get billing/payment history for the authenticated user.
-    /// Route: GET /billing/history
-    /// </summary>
-    public static async Task<IResult> GetBillingHistory(ClaimsPrincipal user, AppDbContext db)
-    {
-        try
-        {
-            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            combinedList.Add(new 
             {
-                return Results.Unauthorized();
-            }
-
-            string initiatorId = userId.ToString();
-
-            // 1. Fetch data WITHOUT sorting first
-            var rawHistory = await db.Payments
-                .AsQueryable()
-                .Where(p => p.Initiator == initiatorId)
-                .Select(p => new
-                {
-                    TransactionId = p.Transaction,
-                    Amount = (decimal)p.Amount,
-                    TaxAmount = (decimal)p.TAmount,
-                    Method = p.Method,
-                    Bank = p.Bank,
-                    Issuer = p.Issuer,
-                    Status = "Completed",
-                    Date = p.CreatedAt,
-                    CompletedAt = p.CompletedAt,
-                    TaxDate = p.TDate
-                })
-                .ToListAsync();
-
-            // 2. Perform sorting in memory
-            var sortedHistory = rawHistory
-                .OrderByDescending(p => p.Date)
-                .ToList();
-
-            var totalPaid = sortedHistory.Sum(p => (decimal)p.Amount);
-
-            return Results.Ok(new
-            {
-                success = true,
-                data = new
-                {
-                    billingHistory = sortedHistory,
-                    summary = new
-                    {
-                        totalPaid = totalPaid,
-                        totalTransactions = sortedHistory.Count
-                    }
-                }
+                Id = p.Id,
+                Type = "ParkingSession",
+                Date = p.StartTime,
+                Amount = p.Cost,
+                Status = p.Status.ToString()
             });
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error in GetBillingHistory: {ex.Message}");
-            return Results.StatusCode(500);
-        }
+        var sortedList = combinedList
+            .OrderBy(x => ((dynamic)x).Date)
+            .ToList();
+
+        return Results.Ok(sortedList);
     }
-}
+    
+
+
+    public static async Task<IResult> GetBillingHistory(HttpContext http, AppDbContext db)
+    {
+        var userIdClaim = http.User?.Claims
+                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            return Results.Unauthorized();
+
+       
+        var paidReservations = await db.Reservations
+            .Where(r => r.UserId == userId && r.Status == ReservationStatus.paid)
+            .Select(r => new HistoryItemDto
+            {
+                Id = r.Id, 
+                Type = "Reservation",
+                Amount = r.Cost, 
+                Date = r.CreatedAt, 
+                Status = r.Status.ToString(),
+                Description = "Reservation"
+            }).ToListAsync();
+
+        
+        var rawSessions = await db.ParkingSessions
+            .Where(p => p.UserId == userId && (p.Status == "Paid" || p.Status == "completed")) 
+            .Select(p => new 
+            {
+                p.Id,
+                p.Cost,
+                p.EndTime,
+                p.Status,
+                p.LicensePlate
+            })
+            .ToListAsync();
+
+        
+        var paidSessions = rawSessions.Select(p => new HistoryItemDto
+        {
+            Id = p.Id.ToString(),
+            Type = "ParkingSession",
+            Amount = (decimal)p.Cost,
+            Date = p.EndTime ?? DateTimeOffset.UtcNow, 
+            Status = p.Status ?? "Paid",
+            Description = $"Parking session {p.LicensePlate}"
+        }).ToList();
+
+        // STAP 4: Samenvoegen en sorteren
+        var combinedHistory = paidReservations
+            .Concat(paidSessions)
+            .OrderByDescending(x => x.Date)
+            .ToList();
+
+        return Results.Ok(combinedHistory);
+    }
+
+
+
+} 
