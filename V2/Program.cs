@@ -12,6 +12,7 @@ public class Program
 
         builder.Services.AddAppServices(builder.Configuration);
         builder.Services.AddJwtAuthentication(builder.Configuration);
+        builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerDocumentation();
 
         var app = builder.Build();
@@ -24,7 +25,7 @@ public class Program
 
         using (var scope = app.Services.CreateScope())
         {
-            if(args.Contains("import"))
+            if (args.Contains("import"))
             {
                 Console.WriteLine("🚀 Starten importeren JSON-data...");
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
