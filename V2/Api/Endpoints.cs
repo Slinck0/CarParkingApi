@@ -85,6 +85,11 @@ public static class Endpoints
          .RequireAuthorization("ADMIN")
          .WithTags("Admin");
 
+      // Admin only payment endpoints
+      adminGroup.MapPut("/payments/{transaction}/cancel", PaymentHandlers.AdminCancelUserPayment);
+      adminGroup.MapPut("/payments/{transaction}", PaymentHandlers.AdminUpdatePayment);
+
+
       adminGroup.MapPut("/users/{id}/toggle-active", ProfileHandlers.UpdateState);
    }
 }

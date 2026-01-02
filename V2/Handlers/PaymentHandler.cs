@@ -133,4 +133,92 @@ public static class PaymentHandlers
 
         return Results.Ok(payments);
     }
+
+    public record AdminUpdatePaymentRequest(
+    decimal? Amount,
+    string? Method,
+    PaymentStatus? Status
+);
+
+    public static async Task<IResult> AdminCancelUserPayment(
+        AppDbContext db,
+        string transaction)
+    {
+        var payment = await db.Payments.FirstOrDefaultAsync(p => p.Transaction == transaction);
+        if (payment == null)
+            return Results.NotFound("Payment not found.");
+
+        if (payment.Status == PaymentStatus.Pending)
+        {
+            payment.Status = PaymentStatus.Failed;
+            payment.CompletedAt = DateTimeOffset.UtcNow;
+        }
+        else if (payment.Status == PaymentStatus.Completed)
+        {
+            payment.Status = PaymentStatus.Refunded;
+            payment.CompletedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            return Results.BadRequest($"Cannot cancel payment with status '{payment.Status}'.");
+        }
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            payment.Transaction,
+            payment.Amount,
+            payment.Method,
+            payment.Status,
+            payment.ReservationId,
+            payment.CreatedAt,
+            payment.CompletedAt
+        });
+    }
+
+    public static async Task<IResult> AdminUpdatePayment(
+        AppDbContext db,
+        string transaction,
+        AdminUpdatePaymentRequest req)
+    {
+        var payment = await db.Payments.FirstOrDefaultAsync(p => p.Transaction == transaction);
+        if (payment == null)
+            return Results.NotFound("Payment not found.");
+
+        if (req.Amount.HasValue)
+        {
+            if (req.Amount.Value <= 0)
+                return Results.BadRequest("Amount must be > 0.");
+
+            payment.Amount = req.Amount.Value;
+            payment.TAmount = req.Amount.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(req.Method))
+            payment.Method = req.Method;
+
+        if (req.Status.HasValue)
+        {
+            payment.Status = req.Status.Value;
+
+            if (payment.Status != PaymentStatus.Pending)
+                payment.CompletedAt = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            payment.Transaction,
+            payment.Amount,
+            payment.Method,
+            payment.Status,
+            payment.ReservationId,
+            payment.CreatedAt,
+            payment.CompletedAt
+        });
+    }
+
+
 }
