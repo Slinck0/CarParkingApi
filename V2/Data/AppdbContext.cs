@@ -11,7 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<UserModel> Users => Set<UserModel>();
     public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
     public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
-
+    public DbSet<OrganizationModel> Organizations => Set<OrganizationModel>();
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder mb)
@@ -102,6 +102,24 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.StartTime);
             e.HasIndex(x => x.EndTime);
         });
+
+        mb.Entity<OrganizationModel>(e =>
+        {
+            e.ToTable("organization");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Name).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(255);
+            e.Property(x => x.Phone).HasMaxLength(64);
+
+            e.Property(x => x.Address).HasMaxLength(255);
+            e.Property(x => x.City).HasMaxLength(128);
+            e.Property(x => x.Country).HasMaxLength(128);
+
+            e.HasIndex(x => x.Name).IsUnique();
+            e.HasIndex(x => x.CreatedAt);
+        });
+
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
