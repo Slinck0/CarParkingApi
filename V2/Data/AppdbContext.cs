@@ -11,7 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<UserModel> Users => Set<UserModel>();
     public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
     public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
-    public DbSet<OrganizationModel> Organizations => Set<OrganizationModel>();
+    public DbSet<OrganizationModel> Organizations { get; set; } = null!;
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder mb)

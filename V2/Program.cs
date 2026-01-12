@@ -2,7 +2,7 @@
 using V2.Services;
 using V2.Data;
 using V2.Api;
-
+using Microsoft.Extensions.DependencyInjection;
 
 public class Program
 {
@@ -17,23 +17,18 @@ public class Program
 
         var app = builder.Build();
 
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.EnsureCreated();
+        }
+
         app.UseSwaggerDocumentation();
         app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapEndpoints();
 
-        using (var scope = app.Services.CreateScope())
-        {
-            if (args.Contains("import"))
-            {
-                Console.WriteLine("🚀 Starten importeren JSON-data...");
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                AppInt.ImportJson().Wait();
-            }
-        }
-
         app.Run();
-
     }
 }
