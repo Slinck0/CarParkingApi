@@ -204,10 +204,23 @@ public class VehicleHandlerTests
     {
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
+        db.Users.Add(new UserModel
+        {
+            Id = 99,
+            Username = "TestUser",
+            Email = "test@test.nl",
+            Password = "pw",
+            Active = true,
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now),
+            BirthYear = 1990,
+            Name = "Test",
+            Phone = "123"
+        });
+        db.SaveChanges();
         
         var mockHttp = new Mock<HttpContext>();
         var claims = new Claim[] { new Claim(ClaimTypes.NameIdentifier, "99") }; // UserId 99
-        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity(claims)));
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")));
 
         var vehicle = new VehicleModel 
         { 
@@ -234,6 +247,19 @@ public class VehicleHandlerTests
     {
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
+        db.Users.Add(new UserModel
+        {
+            Id = 123,
+            Username = "OtherUser",
+            Email = "other@test.nl",
+            Password = "pw",
+            Active = true,
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now),
+            BirthYear = 1990,
+            Name = "Other",
+            Phone = "456"
+        });
+        db.SaveChanges();
 
         db.Vehicles.Add(new VehicleModel
         { 
@@ -243,7 +269,7 @@ public class VehicleHandlerTests
 
         var mockHttp = new Mock<HttpContext>();
         var claims = new Claim[] { new Claim(ClaimTypes.NameIdentifier, "123") };
-        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity(claims)));
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")));
         
         var request = new VehicleModel
         { 
