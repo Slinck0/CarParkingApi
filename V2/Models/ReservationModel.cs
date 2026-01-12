@@ -2,7 +2,7 @@ namespace V2.Models;
 
 public enum ReservationStatus { pending, confirmed, cancelled }
 
-public class Reservation
+public class ReservationModel
 {
     public string Id { get; set; } = null!;
     public int UserId { get; set; }

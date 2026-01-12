@@ -10,7 +10,7 @@ public class UserRaw
     [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
     public int? birth_year { get; set; }
 
-    [JsonConverter(typeof(FlexibleBoolConverter))]
+    [JsonConverter(typeof(BoolConverter))]
     public bool? active { get; set; }
 
     public string? username { get; set; }

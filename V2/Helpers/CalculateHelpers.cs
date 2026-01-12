@@ -1,8 +1,8 @@
 using V2.Models;
 
-public class Helpers
+public class CalculateHelpers
 {
-    public static (decimal price, int hours, int extraDays) CalculatePrice(ParkingLot lot, DateTime start, DateTime end)
+    public static (decimal price, int hours, int extraDays) CalculatePrice(ParkingLotModel lot, DateTime start, DateTime end)
     {
         var diff = end - start;
         var hours = (int)Math.Ceiling(diff.TotalSeconds / 3600.0);

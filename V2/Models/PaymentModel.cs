@@ -1,6 +1,6 @@
 namespace V2.Models;
 
-public class Payment
+public class PaymentModel
 {
     public string Transaction { get; set; } = null!;
     public decimal Amount { get; set; }

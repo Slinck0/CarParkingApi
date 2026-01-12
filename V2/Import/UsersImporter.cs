@@ -28,7 +28,7 @@ public static class UsersImporter
         var rawList = JsonSerializer.Deserialize<List<UserRaw>>(json, opts) ?? new();
 
         // We bewaren zowel de gemapte User als de oorspronkelijke raw voor logging in bad-users.json
-        var valid = new List<(User user, UserRaw raw)>();
+        var valid = new List<(UserModel user, UserRaw raw)>();
         var bad   = new List<UserRaw>();
 
         // 1) Voor de-duplicatie binnen de import
@@ -67,7 +67,7 @@ public static class UsersImporter
                 }
             }
 
-            var user = new User
+            var user = new UserModel
             {
                 Id        = id,
                 Username  = r.username?.Trim(),
@@ -94,7 +94,7 @@ public static class UsersImporter
             .Where(u => emails.Contains(u.Email))
             .ToDictionaryAsync(u => u.Email!); // alleen niet-null keys zitten in 'emails'
 
-        var final = new List<User>();
+        var final = new List<UserModel>();
         foreach (var (user, raw) in valid)
         {
             if (user.Email != null &&

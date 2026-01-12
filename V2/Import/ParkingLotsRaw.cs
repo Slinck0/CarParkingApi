@@ -2,7 +2,7 @@ namespace V2.Import;
 
 public class Coordinates { public double lat { get; set; } public double lng { get; set; } }
 
-public class LotRaw
+public class ParkingLotsRaw
 {
     public string id { get; set; } = null!;
     public string name { get; set; } = null!;

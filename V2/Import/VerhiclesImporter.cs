@@ -142,7 +142,7 @@ public static class VehiclesImporter
         }
  
         // ===== Mapping & validatie =====
-        var valid = new List<Vehicle>();
+        var valid = new List<VehicleModel>();
         var bad = new List<VehicleRaw>();
  
         // Voor deduplicatie binnen deze import
@@ -198,7 +198,7 @@ public static class VehiclesImporter
                 if (!exists) userId = null;
             }
  
-            var v = new Vehicle
+            var v = new VehicleModel
             {
                 Id = id,
                 LicensePlate = plate,
@@ -224,7 +224,7 @@ public static class VehiclesImporter
             .Where(v => plates.Contains(v.LicensePlate))
             .ToDictionaryAsync(v => v.LicensePlate!);
  
-        var final = new List<Vehicle>();
+        var final = new List<VehicleModel>();
         foreach (var v in valid)
         {
             if (v.LicensePlate != null &&

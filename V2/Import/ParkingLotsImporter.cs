@@ -6,16 +6,16 @@ using V2.Models;
 
 namespace V2.Import;
 
-public static class LotsImporter
+public static class ParkingLotsImporter
 {
     public static async Task ImportAsync(AppDbContext db, string jsonPath)
     {
         var json = await File.ReadAllTextAsync(jsonPath);
         var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var root = JsonSerializer.Deserialize<Dictionary<string, LotRaw>>(json, opts) ?? new();
+        var root = JsonSerializer.Deserialize<Dictionary<string, ParkingLotsRaw>>(json, opts) ?? new();
 
-        var valid = new List<ParkingLot>();
-        var bad   = new List<LotRaw>();
+        var valid = new List<ParkingLotModel>();
+        var bad   = new List<ParkingLotsRaw>();
         const string df = "yyyy-MM-dd";
 
         foreach (var r in root.Values)
@@ -29,7 +29,7 @@ public static class LotsImporter
             var closedDate = string.IsNullOrWhiteSpace(r.closed_date) ? (DateOnly?)null
                 : (DateOnly.TryParseExact(r.closed_date, df, CultureInfo.InvariantCulture, DateTimeStyles.None, out var cd) ? cd : null);
 
-            valid.Add(new ParkingLot {
+            valid.Add(new ParkingLotModel {
                 Id = id,
                 Name = r.name,
                 Location = r.location,

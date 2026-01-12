@@ -19,11 +19,11 @@ public static class PaymentsImporter
 
         await using var stream = File.OpenRead(jsonPath);
 
-        var batch = new List<Payment>(BatchSize);
+        var batch = new List<PaymentModel>(BatchSize);
         var badRecords = new List<object>(); // log ongeldige/dupe records
         int total = 0;
 
-        await foreach (var raw in JsonSerializer.DeserializeAsyncEnumerable<PaymentRaw>(stream, JsonOpts))
+        await foreach (var raw in JsonSerializer.DeserializeAsyncEnumerable<PaymentsRaw>(stream, JsonOpts))
         {
             if (raw is null)
             {
@@ -46,7 +46,7 @@ public static class PaymentsImporter
             }
 
             // NB: normaliseer alle stringvelden die uniqueness kunnen raken
-            var entity = new Payment
+            var entity = new PaymentModel
             {
                 Transaction = tx, // genormaliseerd!
                 Amount      = raw.amount,
@@ -87,7 +87,7 @@ public static class PaymentsImporter
         }
     }
 
-    private static async Task FlushChunkAsync(AppDbContext db, List<Payment> batch, List<object> badRecords)
+    private static async Task FlushChunkAsync(AppDbContext db, List<PaymentModel> batch, List<object> badRecords)
     {
         // 1) Dedup binnen de batch zelf (op Transaction)
         var deduped = batch
@@ -105,7 +105,7 @@ public static class PaymentsImporter
         );
 
         // 3) Split nieuw vs bestaand
-        var toInsert = new List<Payment>(deduped.Count);
+        var toInsert = new List<PaymentModel>(deduped.Count);
         foreach (var p in deduped)
         {
             if (!existingKeys.Contains(p.Transaction))

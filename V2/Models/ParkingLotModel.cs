@@ -1,6 +1,6 @@
 namespace V2.Models;
 
-public class ParkingLot
+public class ParkingLotModel
 {
     public int Id { get; set; }
     public string Name { get; set; } = null!;

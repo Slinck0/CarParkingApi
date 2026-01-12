@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace V2.Models;
 
-public class Vehicle
+public class VehicleModel
 {
     [JsonIgnore]
     public int Id { get; set; } 
