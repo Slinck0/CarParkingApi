@@ -3,9 +3,9 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults; // Nodig voor de nieuwe return types (BadRequest<T>, Conflict<T>)
-using ParkingImporter.Data;
-using ParkingImporter.Models;
-using ParkingApi.Services;
+using V2.Data;
+using V2.Models;
+using V2.Services;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -64,7 +64,7 @@ public class UserHandlerTests
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
         
-        db.Users.Add(new User 
+        db.Users.Add(new UserModel 
         { 
             Id = 1, Username = "BestaandeGebruiker", Email = "test@example.com",
             Password = "Hash", Name = "Test", Phone = "0612345678", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
@@ -104,7 +104,7 @@ public class ProfileHandlerTests
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
         
-        var existingUser = new User 
+        var existingUser = new UserModel 
         { 
             Id = _testUserId, Username = "Oud", Name = "Oude Naam", Email = "oud@test.nl", Phone = "000", BirthYear = 1990,
             Password = "pw", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
@@ -137,7 +137,7 @@ public class ProfileHandlerTests
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
         
-        db.Users.Add(new User 
+        db.Users.Add(new UserModel 
         { 
             Id = _testUserId, Username = "TestUser", Email = "a@b.com",
             Password = "Hash", Name = "Test", Phone = "0612345678", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
@@ -173,12 +173,12 @@ public class ProfileHandlerTests
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
 
-        var userToUpdate = new User 
+        var userToUpdate = new UserModel 
         { 
             Id = _testUserId, Username = "Mijzelf", Email = "oud@voorbeeld.nl", BirthYear = 1990, 
             Name = "A", Phone = "123", Password = "pw", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true 
         };
-        var otherUser = new User 
+        var otherUser = new UserModel
         { 
             Id = 456, Username = "Anderen", Email = "bezet@voorbeeld.nl",
             Name = "B", Phone = "456", Password = "pw", BirthYear = 2000, CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
@@ -209,7 +209,7 @@ public class VehicleHandlerTests
         var claims = new Claim[] { new Claim(ClaimTypes.NameIdentifier, "99") }; // UserId 99
         mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity(claims)));
 
-        var vehicle = new Vehicle 
+        var vehicle = new VehicleModel 
         { 
             LicensePlate = "XYZ-999", Make = "Tesla", Model = "Model 3", Color = "Zwart" 
         };
@@ -219,7 +219,7 @@ public class VehicleHandlerTests
 
         // Assert
         // 1. Check Resultaat
-        var createdResult = Assert.IsType<Created<Vehicle>>(result);
+        var createdResult = Assert.IsType<Created<VehicleModel>>(result);
         Assert.Equal(201, createdResult.StatusCode);
         
         // 2. Check Database
@@ -235,7 +235,7 @@ public class VehicleHandlerTests
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
 
-        db.Vehicles.Add(new Vehicle 
+        db.Vehicles.Add(new VehicleModel
         { 
             Id = 1, LicensePlate = "ABC-123", Make = "Ford", Model = "Fiesta", Color = "Blauw", UserId = 1, CreatedAt = DateOnly.FromDateTime(DateTime.Now)
         });
@@ -245,7 +245,7 @@ public class VehicleHandlerTests
         var claims = new Claim[] { new Claim(ClaimTypes.NameIdentifier, "123") };
         mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity(claims)));
         
-        var request = new Vehicle 
+        var request = new VehicleModel
         { 
             LicensePlate = "ABC-123", Make = "Ford", Model = "Focus", Color = "Rood" 
         };
