@@ -25,7 +25,7 @@ def make_user(base_url):
             "Email": f"{username_prefix}_{unique}@test.com",
             "PhoneNumber": phone,
             "BirthYear": 1990,
-            "Role": role
+            "Role": "ADMIN"
         }
 
         # Registreer de user
