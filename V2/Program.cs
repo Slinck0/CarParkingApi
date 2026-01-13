@@ -1,4 +1,4 @@
-﻿using V2.Endpoints;
+using V2.Endpoints;
 using V2.Services;
 using V2.Data;
 using V2.Api;
@@ -10,16 +10,24 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddAppServices(builder.Configuration);
+       
+        builder.Services.AddAppServices(builder.Configuration); 
+        
+       
         builder.Services.AddJwtAuthentication(builder.Configuration);
+        
         builder.Services.AddSwaggerDocumentation();
 
         var app = builder.Build();
 
+     
         app.UseSwaggerDocumentation();
+
+       
         app.UseAuthentication();
         app.UseAuthorization();
 
+        
         app.MapEndpoints();
 
         using (var scope = app.Services.CreateScope())
@@ -33,6 +41,5 @@ public class Program
         }
 
         app.Run();
-
     }
 }

@@ -5,12 +5,13 @@ namespace V2.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<ParkingLotModel> ParkingLots => Set<ParkingLotModel>();
-    public DbSet<ReservationModel> Reservations => Set<ReservationModel>();
-    public DbSet<PaymentModel> Payments => Set<PaymentModel>();
-    public DbSet<UserModel> Users => Set<UserModel>();
-    public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
-    public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
+    public DbSet<ParkingLot> ParkingLots => Set<ParkingLot>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<ParkingSessions> ParkingSessions => Set<ParkingSessions>();
+    public DbSet<DiscountModel> Discounts => Set<DiscountModel>();
     
 
 
@@ -88,11 +89,22 @@ public class AppDbContext : DbContext
             e.Property(x => x.LicensePlate).HasMaxLength(32);
             e.Property(x => x.StartTime).IsRequired();
             e.Property(x => x.EndTime);
+            e.Property(x => x.ParkingLotId).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.Cost).HasColumnType("decimal(10,2)");
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.VehicleId);
             e.HasIndex(x => x.StartTime);
             e.HasIndex(x => x.EndTime);
+        });
+        mb.Entity<DiscountModel>(e =>
+        {
+            e.ToTable("discount");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Percentage).HasColumnType("decimal(5,2)").IsRequired();
+            e.Property(x => x.ValidUntil).IsRequired();
+            e.HasIndex(x => x.Code).IsUnique();
         });
     }
 

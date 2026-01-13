@@ -7,4 +7,8 @@ public class ParkingSessionModel
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
     public decimal? Cost { get; set; }
+
+    public int ParkingLotId { get; set; }
+
+    public string? Status { get; set; }
 }

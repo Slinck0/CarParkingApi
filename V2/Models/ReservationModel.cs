@@ -1,12 +1,13 @@
 namespace V2.Models;
 
-public enum ReservationStatus { pending, confirmed, cancelled }
+public enum ReservationStatus { pending, confirmed, cancelled,paid }
 
 public class ReservationModel
 {
     public string Id { get; set; } = null!;
     public int UserId { get; set; }
     public int ParkingLotId { get; set; }
+
     public int VehicleId { get; set; }
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }

@@ -4,7 +4,7 @@ import uuid
 
 @pytest.fixture
 def base_url():
-    return "http://localhost:8000"
+    return "http://localhost:5000"
 
 @pytest.fixture
 def make_user(base_url):
