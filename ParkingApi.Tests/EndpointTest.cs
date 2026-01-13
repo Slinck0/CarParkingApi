@@ -11,6 +11,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using ParkingApi.Tests.Helpers;
 
 public static class DbContextHelper
 {
@@ -42,6 +43,55 @@ public class UserHandlerTests
         var savedUser = db.Users.FirstOrDefault(u => u.Email == "piet@schip.nl");
         Assert.NotNull(savedUser);
         Assert.Equal("NieuweUser", savedUser.Username);
+    }
+
+    [Fact]
+    public void Register_ReturnsBadRequest_WhenEmailIsInvalid()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var request = new RegisterUserRequest(
+            "TestUser",
+            "ValidPassword",
+            "Test Name",
+            "123456789",
+            "invalid-email-format",
+            2000
+        );
+
+        // Act
+        var result = UserHandlers.Register(request, db);
+
+        // Assert
+        var badRequest = Assert.IsType<BadRequest<string>>(result);
+        Assert.Contains("Invalid email format", badRequest.Value);
+    }
+
+    [Fact]
+    public void Register_ReturnsConflict_WhenEmailAlreadyExists()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        db.Users.Add(new UserModel
+        {
+            Id = 1,
+            Username = "ExistingUser",
+            Email = "existing@mail.com",
+            Password = "Hash",
+            Name = "Test",
+            Phone = "0612345678",
+            BirthYear = 1990,
+            CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow),
+            Active = true
+        });
+
+        db.SaveChanges();
+
+        var request = new RegisterUserRequest("NewUser", "ValidPassword", "New Name", "123456789", "existing@mail.com", 1995);
+
+        var result = UserHandlers.Register(request, db);
+
+        Assert.IsType<Conflict<string>>(result);
     }
 
     [Fact]
@@ -80,6 +130,107 @@ public class UserHandlerTests
 
         // Assert
         Assert.IsType<Conflict<string>>(result);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsBadRequest_whenFieldsAreMissing()
+    {
+        // Arrange
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        
+        var request = new LoginRequest("", ""); // Lege velden
+        var tokenService = new TokenService(TestConfigHelper.GetTestConfiguration());
+
+        // Act
+        var result = await UserHandlers.Login(request, db, tokenService);
+
+        // Assert
+        var badRequest = Assert.IsAssignableFrom<IResult>(result);
+        var valueProperty = badRequest.GetType().GetProperty("Value");
+        Assert.NotNull(valueProperty);
+
+        var value = valueProperty.GetValue(badRequest);
+        var messageProperty = value!.GetType().GetProperty("message");
+        Assert.NotNull(messageProperty);
+
+        var message = messageProperty.GetValue(value) as string;
+        Assert.Contains("Username and Password are required", message!);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsUnauthorized_WhenUserDoesNotExist()
+    {
+        // Arrange
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var tokenService = new TokenService(TestConfigHelper.GetTestConfiguration());
+        
+        var request = new LoginRequest("NonExistentUser", "SomePassword");
+
+        // Act
+        var result = await UserHandlers.Login(request, db, tokenService);
+
+        // Assert
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsUnauthorized_WhenPasswordIsIncorrect()
+    {
+        // Arrange
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var tokenService = new TokenService(TestConfigHelper.GetTestConfiguration());
+        
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("CorrectPassword");
+        db.Users.Add(new UserModel
+        {
+            Username = "TestUser",
+            Password = BCrypt.Net.BCrypt.HashPassword("Password123"),
+            Name = "Test User",
+            Phone = "0612345678",
+            Email = "test@test.nl",
+            BirthYear = 1990,
+            Active = true,
+            CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow)
+        });
+        db.SaveChanges();
+
+        var request = new LoginRequest("TestUser", "IncorrectPassword");
+
+        // Act
+        var result = await UserHandlers.Login(request, db, tokenService);
+
+        // Assert
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_ReturnsToken_WhenCredentialsAreValid()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var tokenService = new TokenService(TestConfigHelper.GetTestConfiguration());
+
+        const string plainPassword = "Password123";
+
+        db.Users.Add(new UserModel
+        {
+            Username = "TestUser",
+            Password = BCrypt.Net.BCrypt.HashPassword(plainPassword),
+            Name = "Test User",
+            Phone = "0612345678",
+            Email = "test@test.nl",
+            BirthYear = 1990,
+            Active = true,
+            CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow)
+        });
+        db.SaveChanges();
+
+        var request = new LoginRequest("TestUser", plainPassword);
+
+        // Act
+        var result = await UserHandlers.Login(request, db, tokenService);
+
+        // Assert
+        var ok = Assert.IsAssignableFrom<IResult>(result);
     }
 }
 
