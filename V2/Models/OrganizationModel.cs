@@ -25,3 +25,12 @@ public record OrganizationCreateRequest(
     string? City,
     string? Country
 );
+
+public record OrganizationUpdateRequest(
+    string Name,
+    string? Email,
+    string? Phone,
+    string? Address,
+    string? City,
+    string? Country
+);
