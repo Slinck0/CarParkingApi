@@ -29,7 +29,7 @@ public class Program
             
             db.Database.EnsureCreated();
 
-       
+
             {
                 db.Users.Add(new UserModel
                 {
@@ -38,13 +38,26 @@ public class Program
                     Name = "Rens Admin",
                     Email = "rens@test.nl",
                     Phone = "0612345678",
-                    Role = "Admin",
+                    Role = "ADMIN",
                     Active = true,
                     CreatedAt = DateOnly.FromDateTime(DateTime.Now),
                     BirthYear = 1990
                 });
                 db.SaveChanges();
             }
+            if (!db.ParkingLots.Any(p => p.Id == 1))
+        {
+            db.ParkingLots.Add(new ParkingLotModel 
+            {
+                Id = 1,
+                Name = "Test Garage CI",
+                Location = "Rotterdam",
+                Address = "Stationstraat 1",
+                Capacity = 100,
+                Tariff = 2.50m,
+                Status = "Open"
+            });
+        }
 
             // 3. Je bestaande import logica
             if(args.Contains("import"))
