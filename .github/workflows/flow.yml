@@ -12,8 +12,33 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Tests
-        run: dotnet test ParkingApi.Tests
+      
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          
+      - name: Run Tests with Coverage
+
+        run: dotnet test ParkingApi.Tests --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate Report
+   
+        run: |
+          reportgenerator `
+          -reports:./coverage/**/coverage.cobertura.xml `
+          -targetdir:./coverage-report `
+          -reporttypes:Html `
+          -classfilters:-*.Migrations.*
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Coverage-Report
+          path: ./coverage-report
 
   build:
     name: Build
