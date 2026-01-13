@@ -20,6 +20,13 @@ public record ParkingLotCreate(
     DateOnly? ClosedDate
 );
 
+
+public class ErrorResponse
+{
+    public string Error { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+}
+
 public record ReservationRequest(
 
     string LicensePlate,

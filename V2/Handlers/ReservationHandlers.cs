@@ -123,21 +123,21 @@ public static class ReservationHandlers
 
         if (string.IsNullOrWhiteSpace(req.LicensePlate) || !req.StartDate.HasValue || !req.EndDate.HasValue || req.ParkingLot <= 0)
         {
-            return Results.BadRequest(new
+            return Results.BadRequest(new ErrorResponse
             {
-                    error = "missing_fields",
-                    message = "Bad request:/nLicensePlate, StartDate, EndDate, ParkingLot and VehicleId are required."
+                Error = "missing_fields",
+                Message = "Bad request:/nLicensePlate, StartDate, EndDate, ParkingLot and VehicleId are required."
             });
         }
         var startDate = req.StartDate.Value;
         var endDate = req.EndDate.Value;
         if (endDate <= startDate)
         {
-            return Results.BadRequest("Bad request:/nEndDate must be after StartDate.");
+            return Results.BadRequest(new ErrorResponse { Error = "invalid_dates", Message = "Bad request:/nEndDate must be after StartDate." });
         }
         var parkingLot = await db.ParkingLots.FirstOrDefaultAsync(p => p.Id == req.ParkingLot);
         if (parkingLot is null)
-            return Results.NotFound("Parking lot not found.");
+            return Results.NotFound(new ErrorResponse { Error = "not_found", Message = "Parking lot not found." });
 
         var (price, _, _) = CalculateHelpers.CalculatePrice(parkingLot, startDate, endDate);
         var vehicleId = ClaimHelper.LicensePlateHelper(http, req.LicensePlate, db);
