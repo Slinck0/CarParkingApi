@@ -34,7 +34,7 @@ public class Program
         {
             if(args.Contains("import"))
             {
-                Console.WriteLine("🚀 Starten importeren JSON-data...");
+                Console.WriteLine("Starten importeren JSON-data...");
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 AppInt.ImportJson().Wait();
             }

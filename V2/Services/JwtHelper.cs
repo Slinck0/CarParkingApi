@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-namespace ParkingApi.Extensions; // Zorg dat dit een namespace heeft
+namespace V2.Services; // Zorg dat dit een namespace heeft
 
 public static class JwtExtensions
 {

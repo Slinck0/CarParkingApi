@@ -2,11 +2,10 @@ name: .NET 9 CI/CD
 
 on:
   push:
-    branches: [ Rens-new ]
+    branches: [ 'Main' ]
   pull_request:
-    branches: [ Rens-new ]
+    branches: [ 'Main' ]
 
-# Deze permissies zijn nodig zodat de bot een comment kan plaatsen op je PR
 permissions:
   contents: read
   pull-requests: write

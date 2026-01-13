@@ -28,14 +28,13 @@ public class ProfileHandlerTests
         _mockHttp.Setup(c => c.User).Returns(claimsPrincipal);
     }
 
-    // --- SUCCESS TEST (HAPPY PATH) ---
+
     [Fact]
     public async Task UpdateProfile_ReturnsOk_WhenDataIsValid()
     {
-        // Arrange
+   
         using var db = DbContextHelper.GetInMemoryDbContext();
         
-        // Bestaande gebruiker
         var existingUser = new UserModel
         { 
             Id = _testUserId, Username = "Oud", Name = "Oude Naam", Email = "oud@test.nl", Phone = "000", BirthYear = 1990,
