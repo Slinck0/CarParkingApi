@@ -2,7 +2,7 @@
 using V2.Data;
 using System;
 
-namespace ParkingApi.Tests.Helpers;
+namespace V2.Helpers;
 
 public static class DbContextHelper
 {

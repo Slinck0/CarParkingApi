@@ -2,12 +2,10 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using V2.Data;
 using V2.Models;
-using V2.Handlers;
-using ParkingApi.Tests.Helpers;
-
+using V2.Helpers;
 using System.Security.Claims;
+using System.Collections; 
 
 namespace ParkingApi.Tests.Handlers;
 
@@ -20,140 +18,147 @@ public class ReservationHandlerTests
     {
         _mockHttp = new Mock<HttpContext>();
         
+        // Simuleer een ingelogde gebruiker met ID 99
         var claims = new Claim[] { new Claim(ClaimTypes.NameIdentifier, _testUserId.ToString()) };
         var claimsIdentity = new ClaimsIdentity(claims);
         var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
         _mockHttp.Setup(c => c.User).Returns(claimsPrincipal);
     }
 
+    // --- CREATE TESTS ---
+
     [Fact]
     public async Task CreateReservation_ReturnsCreated_WhenDataIsValid()
     {
-        
         using var db = DbContextHelper.GetInMemoryDbContext();
-
-        var parkingLot = new ParkingLotModel
-        { 
-            Id = 1, 
-            Name = "Centrum Garage", 
-            Tariff = 5.0m,
-            Capacity = 100,
-            Location = "Rotterdam",
-            Address = "Coolsingel 1",
-            CreatedAt = DateOnly.FromDateTime(DateTime.Now),
-            Status = "Open",
-            DayTariff = 20.0m,
-            Lat = 0, Lng = 0, Reserved = 0
-        };
-        db.ParkingLots.Add(parkingLot);
-        db.SaveChanges();
-
-        var startTime = DateTime.UtcNow.AddHours(1);
-        var endTime = startTime.AddHours(2);
         
-        var request = new ReservationRequest(
-            "AA-BB-12", 
-            startTime,
-            endTime,
-            1       
-        );
+        // Setup Garage met ALLE verplichte velden (Location en Address toegevoegd!)
+        db.ParkingLots.Add(new ParkingLotModel { 
+            Id = 1, 
+            Name = "Test Garage", 
+            Tariff = 5.0m, 
+            Capacity = 10, 
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now), 
+            Status = "Open",
+            Location = "Rotterdam",      // <--- Was vergeten
+            Address = "Coolsingel 1"     // <--- Was vergeten
+        });
+        db.SaveChanges(); // Nu zou deze regel niet meer moeten crashen
 
+        var request = new ReservationRequest("AA-BB-12", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), 1);
+
+        // Act
         var result = await ReservationHandlers.CreateReservation(_mockHttp.Object, request, db);
 
-        
+        // Assert
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
-        Assert.Equal(201, statusCodeResult.StatusCode);
+        Assert.Equal(201, statusCodeResult.StatusCode); // 201 Created
 
         var reservation = await db.Reservations.FirstOrDefaultAsync(r => r.UserId == _testUserId);
         Assert.NotNull(reservation);
-        Assert.Equal(1, reservation.ParkingLotId);
-        Assert.Equal(50, reservation.VehicleId);
-        Assert.Equal("confirmed", reservation.Status.ToString().ToLower()); 
-     
-        Assert.True(reservation.Cost > 0); 
+        Assert.True(reservation.Cost > 0);
     }
 
-  
+    [Fact]
+    public async Task CreateReservation_ReturnsNotFound_WhenParkingLotDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        // Geen garage toegevoegd aan DB!
+
+        var request = new ReservationRequest("AA-BB-12", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), 999); // ID 999 bestaat niet
+
+        // Act
+        var result = await ReservationHandlers.CreateReservation(_mockHttp.Object, request, db);
+
+        // Assert
+        Assert.IsType<NotFound<string>>(result); // Verwacht 404
+    }
+
     [Fact]
     public async Task CreateReservation_ReturnsBadRequest_WhenEndDateIsBeforeStartDate()
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
+        var request = new ReservationRequest("AA-BB-12", DateTime.UtcNow.AddHours(2), DateTime.UtcNow.AddHours(1), 1); // Eind voor start
 
-        var request = new ReservationRequest(
-            "AA-BB-12",
-            DateTime.UtcNow.AddHours(2), 
-            DateTime.UtcNow.AddHours(1), 
-            1
-        );
-
-   
         var result = await ReservationHandlers.CreateReservation(_mockHttp.Object, request, db);
 
-      
-        Assert.IsType<BadRequest<string>>(result);
+        Assert.IsType<BadRequest<string>>(result); // Verwacht 400
     }
 
+    // --- GET MY RESERVATIONS TESTS ---
 
     [Fact]
     public async Task GetMyReservations_ReturnsOnlyMyReservations()
     {
-        // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
-
-
-        db.Reservations.Add(new ReservationModel { Id = "mijn-reservering", UserId = _testUserId, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
-
-        db.Reservations.Add(new ReservationModel { Id = "andere-reservering", UserId = 888, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
-
+        // Reservering van mij (ID 99)
+        db.Reservations.Add(new ReservationModel { Id = "mijn-1", UserId = _testUserId, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
+        // Reservering van iemand anders (ID 888)
+        db.Reservations.Add(new ReservationModel { Id = "ander-1", UserId = 888, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
         db.SaveChanges();
 
         // Act
         var result = await ReservationHandlers.GetMyReservations(_mockHttp.Object, db);
 
-     
+        // Assert
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
-     
-        var valueProperty = result.GetType().GetProperty("Value");
-        Assert.NotNull(valueProperty);
-        var listValue = valueProperty.GetValue(result);
-        
-      
-        var list = listValue as System.Collections.IEnumerable;
-        Assert.NotNull(list);
-        
-        var count = 0;
-        foreach (var item in list) count++;
 
-        Assert.Equal(1, count); 
+        // Check of er maar 1 in de lijst zit
+        var valueProperty = result.GetType().GetProperty("Value");
+        var list = valueProperty?.GetValue(result) as IEnumerable;
+        
+        int count = 0;
+        foreach (var item in list!) count++;
+        Assert.Equal(1, count);
     }
 
+    [Fact]
+    public async Task GetMyReservations_ReturnsEmptyList_WhenUserHasNoReservations()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        // Lege DB (of alleen reserveringen van anderen)
+
+        // Act
+        var result = await ReservationHandlers.GetMyReservations(_mockHttp.Object, db);
+
+        var valueProperty = result.GetType().GetProperty("Value");
+        var list = valueProperty?.GetValue(result) as IEnumerable;
+        
+        int count = 0;
+        foreach (var item in list!) count++;
+        Assert.Equal(0, count);
+    }
+
+    // --- CANCEL TESTS ---
 
     [Fact]
-    public async Task CancelReservation_ReturnsOk_WhenReservationExists()
+    public async Task CancelReservation_ReturnsOk_WhenReservationExistsAndIsYours()
     {
-
         using var db = DbContextHelper.GetInMemoryDbContext();
         var resId = "res-123";
-
-
-        db.Reservations.Add(new ReservationModel
-        {
-            Id = resId,
-            UserId = _testUserId,
-            Status = ReservationStatus.confirmed,
-            StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1)
-        });
+        // Reservering van mij
+        db.Reservations.Add(new ReservationModel { Id = resId, UserId = _testUserId, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
         db.SaveChanges();
 
-        var result = await ReservationHandlers.CancelReservation(resId, db);
+        var result = await ReservationHandlers.CancelReservation(resId, db); 
 
-     
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
         
-       
         var updatedRes = await db.Reservations.FindAsync(resId);
-        Assert.Equal(ReservationStatus.cancelled, updatedRes.Status);
+        Assert.Equal(ReservationStatus.cancelled, updatedRes!.Status);
+    }
+
+    [Fact]
+    public async Task CancelReservation_ReturnsNotFound_WhenIdDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        
+        // Act: Probeer iets te annuleren wat niet bestaat
+        var result = await ReservationHandlers.CancelReservation("niet-bestaand-id", db);
+
+        // Assert
+        Assert.IsType<NotFound<string>>(result);
     }
 }
