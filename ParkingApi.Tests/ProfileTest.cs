@@ -32,7 +32,6 @@ public class ProfileHandlerTests
     [Fact]
     public async Task UpdateProfile_ReturnsOk_WhenDataIsValid()
     {
-   
         using var db = DbContextHelper.GetInMemoryDbContext();
         
         var existingUser = new UserModel
@@ -43,29 +42,23 @@ public class ProfileHandlerTests
         db.Users.Add(existingUser);
         db.SaveChanges();
 
-        // Update verzoek
         var request = new UpdateProfileRequest("Nieuwe Naam", "nieuw@test.nl", "111", 1995);
 
-        // Act
         var result = await ProfileHandlers.UpdateProfile(_mockHttp.Object, db, request);
 
-        // Assert
         Assert.NotNull(result);
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
 
-        // Check of database is bijgewerkt
         var updatedUser = await db.Users.FindAsync(_testUserId);
         Assert.Equal("Nieuwe Naam", updatedUser.Name);
         Assert.Equal("nieuw@test.nl", updatedUser.Email);
         Assert.Equal(1995, updatedUser.BirthYear);
     }
 
-    // --- SUCCESS TEST (GET) ---
     [Fact]
     public async Task GetProfile_ReturnsProfile_WhenUserExists()
     {
-        // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
 
         db.Users.Add(new UserModel
@@ -75,15 +68,12 @@ public class ProfileHandlerTests
         });
         db.SaveChanges();
         
-        // Act
         var result = await ProfileHandlers.GetProfile(_mockHttp.Object, db);
 
-        // Assert
         Assert.NotNull(result);
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
 
-        // Value uitlezen via reflectie (vanwege anoniem type)
         var valueProperty = result.GetType().GetProperty("Value");
         Assert.NotNull(valueProperty);
         
@@ -104,7 +94,6 @@ public class ProfileHandlerTests
     [Fact]
     public async Task UpdateProfile_ReturnsConflict_WhenNewEmailIsAlreadyInUse()
     {
-        // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
 
         var userToUpdate = new UserModel
@@ -123,10 +112,8 @@ public class ProfileHandlerTests
 
         var request = new UpdateProfileRequest("Mijn Nieuwe Naam", "bezet@voorbeeld.nl", "987654321", 1991);
 
-        // Act
         var result = await ProfileHandlers.UpdateProfile(_mockHttp.Object, db, request);
 
-        // Assert
         Assert.IsType<Conflict<string>>(result);
     }
 }

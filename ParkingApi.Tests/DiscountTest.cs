@@ -18,12 +18,12 @@ public class DiscountHandlerTests
         _mockHttp = new Mock<HttpContext>();
     }
 
-    // --- POST DISCOUNT TESTS ---
+
 
     [Fact]
     public async Task PostDiscount_ReturnsCreated_WhenDataIsValid()
     {
-        // Arrange
+   
         using var db = DbContextHelper.GetInMemoryDbContext();
         
         var request = new CreateDiscountRequest
@@ -33,15 +33,14 @@ public class DiscountHandlerTests
             ValidUntil = DateTime.Now.AddDays(30)
         };
 
-        // Act
+        
         var result = await DiscountHandler.PostDiscount(_mockHttp.Object, db, request);
 
-        // Assert
         var createdResult = Assert.IsType<Created<DiscountModel>>(result);
         Assert.Equal(201, createdResult.StatusCode);
         Assert.Equal("SUMMER2025", createdResult.Value?.Code);
 
-        // Check of het in de DB staat
+       
         var savedDiscount = await db.Set<DiscountModel>().FirstOrDefaultAsync(d => d.Code == "SUMMER2025");
         Assert.NotNull(savedDiscount);
     }
@@ -49,9 +48,9 @@ public class DiscountHandlerTests
     [Fact]
     public async Task PostDiscount_ReturnsConflict_WhenCodeAlreadyExists()
     {
-        // Arrange
+       
         using var db = DbContextHelper.GetInMemoryDbContext();
-        // Voeg alvast een korting toe
+      
         db.Set<DiscountModel>().Add(new DiscountModel { Code = "EXISTING", Percentage = 10, ValidUntil = DateTime.Now.AddDays(1) });
         db.SaveChanges();
 
@@ -62,10 +61,10 @@ public class DiscountHandlerTests
             ValidUntil = DateTime.Now.AddDays(5)
         };
 
-        // Act
+       
         var result = await DiscountHandler.PostDiscount(_mockHttp.Object, db, request);
 
-        // Assert
+       
         var conflictResult = Assert.IsType<Conflict<string>>(result);
         Assert.Equal(409, conflictResult.StatusCode);
     }
@@ -103,7 +102,7 @@ public class DiscountHandlerTests
         Assert.IsType<BadRequest<string>>(result);
     }
 
-    // --- GET DISCOUNTS TESTS ---
+    
 
     [Fact]
     public async Task GetDiscounts_ReturnsListOfDiscounts()
@@ -114,10 +113,10 @@ public class DiscountHandlerTests
         db.Set<DiscountModel>().Add(new DiscountModel { Code = "B", Percentage = 20 });
         db.SaveChanges();
 
-        // Act
+        
         var result = await DiscountHandler.GetDiscounts(_mockHttp.Object, db);
 
-        // Assert
+       
         var okResult = Assert.IsType<Ok<List<DiscountModel>>>(result);
         Assert.Equal(200, okResult.StatusCode);
         Assert.Equal(2, okResult.Value?.Count);
@@ -126,13 +125,11 @@ public class DiscountHandlerTests
     [Fact]
     public async Task GetDiscounts_ReturnsEmptyList_WhenNoDiscountsExist()
     {
-        // Arrange
+      
         using var db = DbContextHelper.GetInMemoryDbContext(); // Lege DB
 
-        // Act
+     
         var result = await DiscountHandler.GetDiscounts(_mockHttp.Object, db);
-
-        // Assert
         var okResult = Assert.IsType<Ok<List<DiscountModel>>>(result);
         Assert.Empty(okResult.Value!);
     }

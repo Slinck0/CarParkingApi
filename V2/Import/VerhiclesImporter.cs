@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
-
-namespace V2.Import;
- 
+using V2.Import;
+using System.Diagnostics.CodeAnalysis;
+[ExcludeFromCodeCoverage]
 public static class VehiclesImporter
 {
     // ===== Helpers =====

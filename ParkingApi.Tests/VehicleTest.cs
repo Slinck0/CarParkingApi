@@ -100,7 +100,7 @@ public class VehicleHandlerTests
         Assert.IsType<BadRequest<string>>(r2);
     }
 
-    // --- GET MY VEHICLES TESTS ---
+
 
     [Fact]
     public async Task GetMyVehicles_ReturnsOnlyMyVehicles()
@@ -120,7 +120,6 @@ public class VehicleHandlerTests
         Assert.Equal("MIJN-AUTO", vehicles[0].LicensePlate);
     }
 
-    // --- UPDATE TESTS ---
 
     [Fact]
     public async Task UpdateVehicle_ReturnsOk_WhenUpdatingOwnVehicle()
