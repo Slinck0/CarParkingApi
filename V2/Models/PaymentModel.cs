@@ -1,6 +1,4 @@
-using System;
-
-namespace ParkingImporter.Models;   
+namespace V2.Models;
 
 public enum PaymentStatus
 {

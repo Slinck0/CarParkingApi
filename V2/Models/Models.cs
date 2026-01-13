@@ -1,4 +1,4 @@
-using System.Security.Cryptography.X509Certificates;
+namespace V2.Models;
 
 public record RegisterUserRequest(string Username, string Password,string Name, string PhoneNumber, string Email, int BirthYear);
 public record LoginRequest(string Username, string Password);
@@ -21,6 +21,7 @@ public record ParkingLotCreate(
 );
 
 public record ReservationRequest(
+
     string LicensePlate,
     DateTime? StartDate,
     DateTime? EndDate,

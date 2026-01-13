@@ -1,7 +1,8 @@
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults; 
-using ParkingImporter.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
+using V2.Data;
+using V2.Models;
 using ParkingApi.Tests.Helpers;
 
 namespace ParkingApi.Tests.Handlers;
@@ -42,9 +43,9 @@ public class UserHandlerTests
     public void Register_ReturnsConflict_WhenUserAlreadyExists()
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
-        
-        db.Users.Add(new User 
-        { 
+
+        db.Users.Add(new UserModel
+        {
             Id = 1, Username = "BestaandeGebruiker", Email = "test@example.com",
             Password = "Hash", Name = "Test", Phone = "0612345678", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
         });

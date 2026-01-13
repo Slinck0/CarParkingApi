@@ -5,12 +5,12 @@ namespace V2.Data;
 
 public class AppDbContext : DbContext
 {
-    public DbSet<ParkingLot> ParkingLots => Set<ParkingLot>();
-    public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<ParkingLotModel> ParkingLots => Set<ParkingLotModel>();
+    public DbSet<ReservationModel> Reservations => Set<ReservationModel>();
     public DbSet<Payment> Payments => Set<Payment>();
-    public DbSet<User> Users => Set<User>();
-    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
-    public DbSet<ParkingSessions> ParkingSessions => Set<ParkingSessions>();
+    public DbSet<UserModel> Users => Set<UserModel>();
+    public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();    
+    public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
     public DbSet<DiscountModel> Discounts => Set<DiscountModel>();
     
 
@@ -46,7 +46,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.StartTime, x.EndTime });
         });
 
-        mb.Entity<PaymentModel>(e =>
+        mb.Entity<Payment>(e =>
         {
             e.ToTable("payment");
             e.HasKey(x => x.Transaction); 

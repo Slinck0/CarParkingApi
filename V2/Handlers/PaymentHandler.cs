@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.StaticAssets;
 using Microsoft.EntityFrameworkCore;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
 public class PaymentHandler
 {
     public static async Task<IResult> GetPayments(HttpContext http, AppDbContext db)
@@ -54,9 +54,9 @@ public class PaymentHandler
         if (user == null) return Results.Unauthorized();
 
         decimal originalAmount = 0;
-        
-        Reservation? reservationToUpdate = null;
-        ParkingSessions ? sessionToUpdate = null;
+
+        ReservationModel reservationToUpdate = null;
+        ParkingSessionModel sessionToUpdate = null;
 
         if (!string.IsNullOrWhiteSpace(req.ReservationId))
         {

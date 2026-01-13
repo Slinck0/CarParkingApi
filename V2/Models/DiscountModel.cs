@@ -1,3 +1,4 @@
+namespace V2.Models;
 public class DiscountModel
 {
     public int Id { get; set; }

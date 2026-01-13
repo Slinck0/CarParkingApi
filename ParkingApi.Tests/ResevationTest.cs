@@ -2,7 +2,9 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using ParkingImporter.Models;
+using V2.Data;
+using V2.Models;
+using V2.Handlers;
 using ParkingApi.Tests.Helpers;
 
 using System.Security.Claims;
@@ -30,7 +32,7 @@ public class ReservationHandlerTests
         
         using var db = DbContextHelper.GetInMemoryDbContext();
 
-        var parkingLot = new ParkingLot 
+        var parkingLot = new ParkingLotModel
         { 
             Id = 1, 
             Name = "Centrum Garage", 
@@ -53,8 +55,7 @@ public class ReservationHandlerTests
             "AA-BB-12", 
             startTime,
             endTime,
-            1,          
-            50          
+            1       
         );
 
         var result = await ReservationHandlers.CreateReservation(_mockHttp.Object, request, db);
@@ -82,8 +83,7 @@ public class ReservationHandlerTests
             "AA-BB-12",
             DateTime.UtcNow.AddHours(2), 
             DateTime.UtcNow.AddHours(1), 
-            1,
-            50
+            1
         );
 
    
@@ -100,12 +100,11 @@ public class ReservationHandlerTests
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
 
-     
-        db.Reservations.Add(new Reservation { Id = "mijn-reservering", UserId = _testUserId, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
-        
-     
-        db.Reservations.Add(new Reservation { Id = "andere-reservering", UserId = 888, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
-        
+
+        db.Reservations.Add(new ReservationModel { Id = "mijn-reservering", UserId = _testUserId, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
+
+        db.Reservations.Add(new ReservationModel { Id = "andere-reservering", UserId = 888, ParkingLotId = 1, Status = ReservationStatus.confirmed, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
+
         db.SaveChanges();
 
         // Act
@@ -137,11 +136,11 @@ public class ReservationHandlerTests
         using var db = DbContextHelper.GetInMemoryDbContext();
         var resId = "res-123";
 
-       
-        db.Reservations.Add(new Reservation 
-        { 
-            Id = resId, 
-            UserId = _testUserId, 
+
+        db.Reservations.Add(new ReservationModel
+        {
+            Id = resId,
+            UserId = _testUserId,
             Status = ReservationStatus.confirmed,
             StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1)
         });

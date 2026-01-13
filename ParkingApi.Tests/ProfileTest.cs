@@ -2,9 +2,10 @@ using Xunit;
 using Moq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using ParkingImporter.Data;
-using ParkingImporter.Models;
-using ParkingApi.Services; 
+using V2.Data;
+using V2.Models;
+using V2.Handlers;
+using V2.Services;
 using ParkingApi.Tests.Helpers;
 using System;
 using System.Security.Claims;
@@ -35,7 +36,7 @@ public class ProfileHandlerTests
         using var db = DbContextHelper.GetInMemoryDbContext();
         
         // Bestaande gebruiker
-        var existingUser = new User 
+        var existingUser = new UserModel
         { 
             Id = _testUserId, Username = "Oud", Name = "Oude Naam", Email = "oud@test.nl", Phone = "000", BirthYear = 1990,
             Password = "pw", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
@@ -67,9 +68,9 @@ public class ProfileHandlerTests
     {
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
-        
-        db.Users.Add(new User 
-        { 
+
+        db.Users.Add(new UserModel
+        {
             Id = _testUserId, Username = "TestUser", Email = "a@b.com",
             Password = "Hash", Name = "Test", Phone = "0612345678", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
         });
@@ -107,12 +108,12 @@ public class ProfileHandlerTests
         // Arrange
         using var db = DbContextHelper.GetInMemoryDbContext();
 
-        var userToUpdate = new User 
+        var userToUpdate = new UserModel
         { 
             Id = _testUserId, Username = "Mijzelf", Email = "oud@voorbeeld.nl", BirthYear = 1990, 
             Name = "A", Phone = "123", Password = "pw", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true 
         };
-        var otherUser = new User 
+        var otherUser = new UserModel
         { 
             Id = 456, Username = "Anderen", Email = "bezet@voorbeeld.nl",
             Name = "B", Phone = "456", Password = "pw", BirthYear = 2000, CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
