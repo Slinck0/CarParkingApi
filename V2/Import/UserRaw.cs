@@ -1,7 +1,8 @@
 using System.Text.Json.Serialization;
 
 namespace V2.Import;
-
+using System.Diagnostics.CodeAnalysis;
+[ExcludeFromCodeCoverage]
 public class UserRaw
 {
     public string? id { get; set; }

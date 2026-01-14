@@ -1,5 +1,6 @@
 namespace V2.Import;
-
+using System.Diagnostics.CodeAnalysis;
+[ExcludeFromCodeCoverage]
 public class Coordinates { public double lat { get; set; } public double lng { get; set; } }
 
 public class ParkingLotsRaw

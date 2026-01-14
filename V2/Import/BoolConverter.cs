@@ -2,7 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace V2.Import;
-
+using System.Diagnostics.CodeAnalysis;
+[ExcludeFromCodeCoverage]
 public sealed class BoolConverter : JsonConverter<bool?>
 {
     public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
