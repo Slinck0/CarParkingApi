@@ -43,6 +43,29 @@ public static class OrganizationHandlers
         });
     }
 
+    public static async Task<IResult> GetOrganizationById(int id, AppDbContext db)
+    {
+        var org = await db.Organizations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (org is null)
+            return Results.NotFound("Organization not found.");
+
+        return Results.Ok(new
+        {
+            org.Id,
+            org.Name,
+            org.Email,
+            org.Phone,
+            org.Address,
+            org.City,
+            org.Country,
+            org.CreatedAt
+        });
+    }
+
+
     public static async Task<IResult> UpdateOrganization(
     int id,
     AppDbContext db,

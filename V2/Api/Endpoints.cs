@@ -88,6 +88,7 @@ public static class Endpoints
       adminGroup.MapPost("/organizations", OrganizationHandlers.CreateOrganization);
       adminGroup.MapPut("/organizations/{id:int}", OrganizationHandlers.UpdateOrganization);
       adminGroup.MapDelete("/organizations/{id:int}", OrganizationHandlers.DeleteOrganization);
+      adminGroup.MapGet("/organizations/{id:int}", OrganizationHandlers.GetOrganizationById);
 
       // Admin only payment endpoints
       adminGroup.MapPut("/payments/{transaction}/cancel", PaymentHandlers.AdminCancelUserPayment);
