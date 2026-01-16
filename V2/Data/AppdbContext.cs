@@ -29,6 +29,11 @@ public class AppDbContext : DbContext
             e.Property(x => x.ClosedReason).HasMaxLength(255);
             e.HasIndex(x => x.Location);
             e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => x.OrganizationId);
+            e.HasOne<OrganizationModel>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         mb.Entity<ReservationModel>(e =>
@@ -70,6 +75,12 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(255).IsRequired();
             e.Property(x => x.Email).HasMaxLength(255).IsRequired();
             e.HasIndex(x => x.Email);
+            e.Property(x => x.OrganizationRole).HasMaxLength(32);
+            e.HasIndex(x => x.OrganizationId);
+            e.HasOne<OrganizationModel>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         mb.Entity<VehicleModel>(e =>
@@ -81,7 +92,11 @@ public class AppDbContext : DbContext
             e.Property(x => x.Make).HasMaxLength(64).IsRequired();
             e.Property(x => x.Model).HasMaxLength(64).IsRequired();
             e.Property(x => x.Color).HasMaxLength(32).IsRequired();
-
+            e.HasIndex(x => x.OrganizationId);
+            e.HasOne<OrganizationModel>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => x.LicensePlate).IsUnique();
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.CreatedAt);
