@@ -2,8 +2,7 @@ using V2.Endpoints;
 using V2.Services;
 using V2.Data;
 using V2.Api;
-using V2.Models;
-using V2.Helpers; // Zorg dat je de namespace van UserModel hebt
+using V2.Models; // Zorg dat je de namespace van UserModel hebt
 
 public class Program
 {
@@ -27,11 +26,38 @@ public class Program
             var services = scope.ServiceProvider;
             var db = services.GetRequiredService<AppDbContext>();
 
-
+            
             db.Database.EnsureCreated();
 
-            AdminHelper.AddAdminIfNotExists(db);
-            AdminHelper.AddParkinglotIfNotExists(db);
+
+            {
+                db.Users.Add(new UserModel
+                {
+                    Username = "Rens",
+                    Password = BCrypt.Net.BCrypt.HashPassword("Rens"),
+                    Name = "Rens Admin",
+                    Email = "rens@test.nl",
+                    Phone = "0612345678",
+                    Role = "ADMIN",
+                    Active = true,
+                    CreatedAt = DateOnly.FromDateTime(DateTime.Now),
+                    BirthYear = 1990
+                });
+                db.SaveChanges();
+            }
+            if (!db.ParkingLots.Any(p => p.Id == 1))
+        {
+            db.ParkingLots.Add(new ParkingLotModel 
+            {
+                Id = 1,
+                Name = "Test Garage CI",
+                Location = "Rotterdam",
+                Address = "Stationstraat 1",
+                Capacity = 100,
+                Tariff = 2.50m,
+                Status = "Open"
+            });
+        }
 
             // 3. Je bestaande import logica
             if(args.Contains("import"))
