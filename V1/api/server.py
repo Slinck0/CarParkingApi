@@ -946,11 +946,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                 return
             
 
-server = HTTPServer(('localhost', 5000), RequestHandler)
-print("Server running on http://localhost:5000")
+server = HTTPServer(('localhost', 8000), RequestHandler)
+print("Server running on http://localhost:8000")
 server.serve_forever()
 
-def start_server(host="127.0.0.1", port=5000):
+def start_server(host="127.0.0.1", port=8000):
     httpd = HTTPServer((host, port), RequestHandler)
     print(f"Server running on http://{host}:{port}")
     return httpd

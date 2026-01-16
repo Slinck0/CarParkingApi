@@ -1,12 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
-
+using V2.Helpers;
 
 public static class VehicleHandlers
 {
     public static async Task<IResult> CreateVehicle(HttpContext http, VehicleModel vehicle, AppDbContext db)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var userId = ClaimHelper.GetUserId(http);
         if (userId == 0) return Results.Unauthorized();
 
@@ -47,6 +50,9 @@ public static class VehicleHandlers
 
     public static async Task<IResult> UpdateVehicle(int id, HttpContext http, VehicleModel updatedVehicle, AppDbContext db)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var vehicle = await db.Vehicles.FindAsync(id);
         if (vehicle == null)
             return Results.NotFound("Vehicle not found.");
@@ -81,6 +87,9 @@ public static class VehicleHandlers
 
     public static async Task<IResult> DeleteVehicle(int id, HttpContext http, AppDbContext db)
     {
+        var check = await ActiveAccountHelper.CheckActive(http, db);
+        if (check != null) return check;
+
         var vehicle = await db.Vehicles.FindAsync(id);
         if (vehicle == null)
             return Results.NotFound("Vehicle not found.");

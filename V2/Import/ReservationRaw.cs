@@ -1,6 +1,5 @@
 namespace V2.Import;
-using System.Diagnostics.CodeAnalysis;
-[ExcludeFromCodeCoverage]
+
 public class ReservationRaw
 {
     public string id { get; set; } = null!;

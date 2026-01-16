@@ -1,9 +1,7 @@
 using System.Text.Json.Serialization;
-using System.Diagnostics.CodeAnalysis;
 
 namespace V2.Import;
-
-[ExcludeFromCodeCoverage]
+ 
 public class VehicleRaw
 {
     public string? id { get; set; }

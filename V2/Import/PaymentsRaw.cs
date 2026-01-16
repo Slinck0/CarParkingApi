@@ -1,9 +1,5 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
-
 namespace V2.Import;
 
-[ExcludeFromCodeCoverage]
 public class PaymentsRaw
 {
     public string transaction { get; set; } = null!;

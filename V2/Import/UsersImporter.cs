@@ -3,10 +3,9 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
-using System.Diagnostics.CodeAnalysis;
 
 namespace V2.Import;
-[ExcludeFromCodeCoverage]
+
 public static class UsersImporter
 {
     private static string? NormalizeEmail(string? email)

@@ -4,7 +4,7 @@ using V2.Models;
 
 // Deze Helper-methode (ClaimHelper.GetUserId) is afkomstig uit de vorige refactoring
 // en is nodig voor alle geautoriseerde handlers.
-public class ProfileHandlers
+public static class ProfileHandlers
 {
     // GET /profile
     public static async Task<IResult> GetProfile(HttpContext http, AppDbContext db)
