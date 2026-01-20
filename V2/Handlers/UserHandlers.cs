@@ -155,4 +155,39 @@ public static class UserHandlers
             organizationRole = user.OrganizationRole
         });
     }
+
+    public static async Task<IResult> AdminGetOrganizationUsers(
+    int orgId,
+    AppDbContext db)
+    {
+        var orgExists = await db.Organizations.AnyAsync(o => o.Id == orgId);
+        if (!orgExists) return Results.NotFound("Organization not found.");
+
+        var users = await db.Users
+            .AsNoTracking()
+            .Where(u => u.OrganizationId == orgId)
+            .Select(u => new
+            {
+                u.Id,
+                u.Username,
+                u.Name,
+                u.Email,
+                u.Phone,
+                u.Role,               // your global role
+                u.OrganizationId,
+                u.OrganizationRole,   // "ADMIN" | "EMPLOYEE"
+                u.CreatedAt,
+                u.BirthYear,
+                u.Active
+            })
+            .ToListAsync();
+
+        return Results.Ok(new
+        {
+            organizationId = orgId,
+            count = users.Count,
+            users
+        });
+    }
+
 }

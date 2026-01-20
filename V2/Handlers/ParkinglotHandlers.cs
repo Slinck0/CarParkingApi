@@ -102,4 +102,43 @@ public static class ParkingLotHandlers
         return Results.NoContent();
     }
 
+    public static async Task<IResult> AdminGetOrganizationParkingLots(
+    int orgId,
+    AppDbContext db)
+    {
+        var orgExists = await db.Organizations.AnyAsync(o => o.Id == orgId);
+        if (!orgExists) return Results.NotFound("Organization not found.");
+
+        var lots = await db.ParkingLots
+            .AsNoTracking()
+            .Where(p => p.OrganizationId == orgId)
+            .Select(p => new
+            {
+                p.Id,
+                p.OrganizationId,
+                p.Name,
+                p.Location,
+                p.Address,
+                p.Capacity,
+                p.Reserved,
+                p.Tariff,
+                p.DayTariff,
+                p.Lat,
+                p.Lng,
+                p.Status,
+                p.ClosedReason,
+                p.ClosedDate,
+                p.CreatedAt
+            })
+            .ToListAsync();
+
+        return Results.Ok(new
+        {
+            organizationId = orgId,
+            count = lots.Count,
+            parkingLots = lots
+        });
+    }
+
+
 }

@@ -105,4 +105,37 @@ public static class VehicleHandlers
 
         return Results.Ok(new { status = "Success", message = "Vehicle deleted successfully." });
     }
+
+    public static async Task<IResult> AdminGetOrganizationVehicles(
+    int orgId,
+    AppDbContext db)
+    {
+        var orgExists = await db.Organizations.AnyAsync(o => o.Id == orgId);
+        if (!orgExists) return Results.NotFound("Organization not found.");
+
+        var vehicles = await db.Vehicles
+            .AsNoTracking()
+            .Where(v => v.OrganizationId == orgId)
+            .Select(v => new
+            {
+                v.Id,
+                v.UserId,
+                v.OrganizationId,
+                v.LicensePlate,
+                v.Make,
+                v.Model,
+                v.Color,
+                v.Year,
+                v.CreatedAt
+            })
+            .ToListAsync();
+
+        return Results.Ok(new
+        {
+            organizationId = orgId,
+            count = vehicles.Count,
+            vehicles
+        });
+    }
+
 }

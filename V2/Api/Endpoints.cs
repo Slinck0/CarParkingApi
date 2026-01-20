@@ -96,6 +96,9 @@ public static class Endpoints
       adminGroup.MapPut("/organizations/{orgId:int}/users/{userId:int}/role", UserHandlers.AdminUpdateUserOrganizationRole);
       adminGroup.MapPost("/organizations/{orgId:int}/parking-lots", ParkingLotHandlers.AdminCreateParkingLotForOrganization);
       adminGroup.MapDelete("/organizations/{orgId:int}/parking-lots/{parkingLotId:int}", ParkingLotHandlers.AdminDeleteParkingLotFromOrganization);
+      adminGroup.MapGet("/organizations/{orgId:int}/users", UserHandlers.AdminGetOrganizationUsers);
+      adminGroup.MapGet("/organizations/{orgId:int}/parking-lots", ParkingLotHandlers.AdminGetOrganizationParkingLots);
+      adminGroup.MapGet("/organizations/{orgId:int}/vehicles", VehicleHandlers.AdminGetOrganizationVehicles);
 
       // Admin only payment endpoints
       adminGroup.MapPut("/payments/{transaction}/cancel", PaymentHandlers.AdminCancelUserPayment);
