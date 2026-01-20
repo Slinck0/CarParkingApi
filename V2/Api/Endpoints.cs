@@ -10,32 +10,44 @@ public static class Endpoints
    public static void MapEndpoints(this WebApplication app)
    {
       app.MapGet("/Health", () => "Parking API is running...");
-
-
+      // ----------------------------------------------------
+      // Authentication Endpoints
+      // ----------------------------------------------------
       app.MapPost("/register", UserHandlers.Register)
          .WithTags("Authentication");
 
       app.MapPost("/login", UserHandlers.Login)
          .WithTags("Authentication");
 
-
+      // ----------------------------------------------------
+      // Profile Endpoints (GET, PUT, DELETE /profile)
+      // ----------------------------------------------------
       var profileGroup = app.MapGroup("/profile").RequireAuthorization().WithTags("Profile");
 
-        profileGroup.MapGet("", ProfileHandlers.GetProfile);
-        profileGroup.MapPut("", ProfileHandlers.UpdateProfile);
-        profileGroup.MapDelete("", ProfileHandlers.DeleteProfile);
-        
+      profileGroup.MapGet("", ProfileHandlers.GetProfile);
+      profileGroup.MapPut("", ProfileHandlers.UpdateProfile);
+      profileGroup.MapDelete("", ProfileHandlers.DeleteProfile);
 
 
+      // ----------------------------------------------------
+      // Authorized Groups
+      // ----------------------------------------------------
       var reservationGroup = app.MapGroup("/reservations").RequireAuthorization().WithTags("Reservations");
       var sessionGroup = app.MapGroup("/parkinglots/{id}/sessions").RequireAuthorization().WithTags("Sessions");
+      var paymentGroup = app.MapGroup("/payments").RequireAuthorization().WithTags("Payments");
 
+      // ----------------------------------------------------
+      // Reservation Endpoints
+      // ----------------------------------------------------
 
       reservationGroup.MapPost("", ReservationHandlers.CreateReservation);
       reservationGroup.MapGet("/me", ReservationHandlers.GetMyReservations);
       reservationGroup.MapDelete("/{id}", ReservationHandlers.CancelReservation);
       reservationGroup.MapPut("/{id}", ReservationHandlers.UpdateReservation);
 
+      // ----------------------------------------------------
+      // Vehicle Endpoints
+      // ----------------------------------------------------
 
       app.MapPost("/vehicles", VehicleHandlers.CreateVehicle)
          .RequireAuthorization().WithTags("Vehicles").WithName("CreateVehicle");
@@ -49,23 +61,51 @@ public static class Endpoints
       app.MapDelete("vehicles/{id}", VehicleHandlers.DeleteVehicle)
          .RequireAuthorization().WithTags("Vehicles");
 
-
+      // ----------------------------------------------------
+      // Session Endpoints
+      // ----------------------------------------------------
       sessionGroup.MapPost("/start", SessionHandlers.StartSession);
       sessionGroup.MapPost("/stop", SessionHandlers.StopSession);
 
-        // ----------------------------------------------------
-        // Parking Lot Endpoints
-        // ----------------------------------------------------
-        app.MapPost("/parking-lots", ParkingLotHandlers.CreateParkingLot)
-           .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+      // ----------------------------------------------------
+      // Parking Lot Endpoints
+      // ----------------------------------------------------
+      app.MapPost("/parking-lots", ParkingLotHandlers.CreateParkingLot)
+         .RequireAuthorization("ADMIN").WithTags("ParkingLots");
 
-        // ----------------------------------------------------
-        // Admin Endpoints
-        // ----------------------------------------------------
-        var adminGroup = app.MapGroup("/admin")
-           .RequireAuthorization("ADMIN")
-           .WithTags("Admin");
+      // ----------------------------------------------------
+      // Payment Endpoints
+      // ----------------------------------------------------
+      paymentGroup.MapPost("/", PaymentHandlers.CreatePayment);
+      paymentGroup.MapGet("/", PaymentHandlers.GetUserPayments);
+      paymentGroup.MapGet("/pending", PaymentHandlers.GetUserNonCompletedPayments);
 
-        adminGroup.MapPut("/users/{id}/toggle-active", ProfileHandlers.UpdateState);
-    }
+      // ----------------------------------------------------
+      // Admin Endpoints
+      // ----------------------------------------------------
+      var adminGroup = app.MapGroup("/admin")
+         .RequireAuthorization("ADMIN")
+         .WithTags("Admin");
+
+      adminGroup.MapPost("/organizations", OrganizationHandlers.CreateOrganization);
+      adminGroup.MapPut("/organizations/{id:int}", OrganizationHandlers.UpdateOrganization);
+      adminGroup.MapDelete("/organizations/{id:int}", OrganizationHandlers.DeleteOrganization);
+      adminGroup.MapGet("/organizations/{id:int}", OrganizationHandlers.GetOrganizationById);
+
+      // Admin only Organization endpoints
+      adminGroup.MapPost("/organizations/{orgId:int}/users/{userId:int}", UserHandlers.AdminAssignUserToOrganization);
+      adminGroup.MapDelete("/organizations/{orgId:int}/users/{userId:int}", UserHandlers.AdminRemoveUserFromOrganization);
+      adminGroup.MapPut("/organizations/{orgId:int}/users/{userId:int}/role", UserHandlers.AdminUpdateUserOrganizationRole);
+      adminGroup.MapPost("/organizations/{orgId:int}/parking-lots", ParkingLotHandlers.AdminCreateParkingLotForOrganization);
+      adminGroup.MapDelete("/organizations/{orgId:int}/parking-lots/{parkingLotId:int}", ParkingLotHandlers.AdminDeleteParkingLotFromOrganization);
+      adminGroup.MapGet("/organizations/{orgId:int}/users", UserHandlers.AdminGetOrganizationUsers);
+      adminGroup.MapGet("/organizations/{orgId:int}/parking-lots", ParkingLotHandlers.AdminGetOrganizationParkingLots);
+      adminGroup.MapGet("/organizations/{orgId:int}/vehicles", VehicleHandlers.AdminGetOrganizationVehicles);
+
+      // Admin only payment endpoints
+      adminGroup.MapPut("/payments/{transaction}/cancel", PaymentHandlers.AdminCancelUserPayment);
+      adminGroup.MapPut("/payments/{transaction}", PaymentHandlers.AdminUpdatePayment);
+
+      adminGroup.MapPut("/users/{id}/toggle-active", ProfileHandlers.UpdateState);
+   }
 }

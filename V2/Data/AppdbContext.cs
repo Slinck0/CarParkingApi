@@ -9,13 +9,11 @@ public class AppDbContext : DbContext
     public DbSet<ReservationModel> Reservations => Set<ReservationModel>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<UserModel> Users => Set<UserModel>();
-    public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();    
+    public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
     public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
+    public DbSet<OrganizationModel> Organizations { get; set; } = null!;
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     public DbSet<DiscountModel> Discounts => Set<DiscountModel>();
-    
-
-
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -32,6 +30,11 @@ public class AppDbContext : DbContext
             e.Property(x => x.ClosedReason).HasMaxLength(255);
             e.HasIndex(x => x.Location);
             e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => x.OrganizationId);
+            e.HasOne<OrganizationModel>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         mb.Entity<ReservationModel>(e =>
@@ -49,15 +52,21 @@ public class AppDbContext : DbContext
         mb.Entity<Payment>(e =>
         {
             e.ToTable("payment");
-            e.HasKey(x => x.Transaction); 
+            e.HasKey(x => x.Transaction);
+
             e.Property(x => x.Amount).HasColumnType("decimal(10,2)");
             e.Property(x => x.TAmount).HasColumnType("decimal(10,2)");
+
             e.Property(x => x.Initiator).HasMaxLength(64);
             e.Property(x => x.Method).HasMaxLength(32);
             e.Property(x => x.Issuer).HasMaxLength(64);
             e.Property(x => x.Bank).HasMaxLength(64);
             e.Property(x => x.Hash).HasMaxLength(64);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+
+            e.HasIndex(x => x.ReservationId);
         });
+
         mb.Entity<UserModel>(e =>
         {
             e.ToTable("user");
@@ -65,7 +74,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(255).IsRequired();
             e.Property(x => x.Email).HasMaxLength(255).IsRequired();
             e.HasIndex(x => x.Email);
+            e.Property(x => x.OrganizationRole).HasMaxLength(32);
+            e.HasIndex(x => x.OrganizationId);
+            e.HasOne<OrganizationModel>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
+
         mb.Entity<VehicleModel>(e =>
         {
             e.ToTable("vehicle");
@@ -75,11 +91,16 @@ public class AppDbContext : DbContext
             e.Property(x => x.Make).HasMaxLength(64).IsRequired();
             e.Property(x => x.Model).HasMaxLength(64).IsRequired();
             e.Property(x => x.Color).HasMaxLength(32).IsRequired();
-
+            e.HasIndex(x => x.OrganizationId);
+            e.HasOne<OrganizationModel>()
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => x.LicensePlate).IsUnique();
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.CreatedAt);
         });
+
         mb.Entity<ParkingSessionModel>(e =>
         {
             e.ToTable("parking_sessions");
@@ -97,6 +118,24 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.StartTime);
             e.HasIndex(x => x.EndTime);
         });
+
+        mb.Entity<OrganizationModel>(e =>
+        {
+            e.ToTable("organization");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Name).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(255);
+            e.Property(x => x.Phone).HasMaxLength(64);
+
+            e.Property(x => x.Address).HasMaxLength(255);
+            e.Property(x => x.City).HasMaxLength(128);
+            e.Property(x => x.Country).HasMaxLength(128);
+
+            e.HasIndex(x => x.Name).IsUnique();
+            e.HasIndex(x => x.CreatedAt);
+        });
+
         mb.Entity<DiscountModel>(e =>
         {
             e.ToTable("discount");
@@ -113,5 +152,4 @@ public class AppDbContext : DbContext
         if (!optionsBuilder.IsConfigured)
             optionsBuilder.UseSqlite("Data Source=parking.db");
     }
-
 }

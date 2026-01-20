@@ -49,16 +49,16 @@ public static class PaymentsImporter
             var entity = new Payment
             {
                 Transaction = tx, // genormaliseerd!
-                Amount      = raw.amount,
-                Initiator   = raw.initiator?.Trim(),
-                Hash        = raw.hash?.Trim(),
-                CreatedAt   = DateTimeOffset.Now,
+                Amount = raw.amount,
+                Initiator = raw.initiator?.Trim(),
+                Hash = raw.hash?.Trim(),
+                CreatedAt = DateTimeOffset.Now,
                 CompletedAt = DateTimeOffset.Now,
-                TAmount     = raw.t_data?.amount ?? 0m,
-                TDate       = tDate,
-                Method      = raw.t_data?.method?.Trim(),
-                Issuer      = raw.t_data?.issuer?.Trim(),
-                Bank        = raw.t_data?.bank?.Trim()
+                TAmount = raw.t_data?.amount ?? 0m,
+                TDate = tDate,
+                Method = raw.t_data?.method?.Trim(),
+                Issuer = raw.t_data?.issuer?.Trim(),
+                Bank = raw.t_data?.bank?.Trim()
             };
 
             batch.Add(entity);
