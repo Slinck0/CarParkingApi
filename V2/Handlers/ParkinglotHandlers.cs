@@ -51,6 +51,41 @@ public static class ParkingLotHandlers
 
         if (string.IsNullOrWhiteSpace(req.Name) || req.Capacity <= 0 || string.IsNullOrWhiteSpace(req.Location) ||
             string.IsNullOrWhiteSpace(req.Address) || req.Tariff <= 0 || req.DayTariff == null || req.Lat == 0 || req.Lng == 0)
+            return Results.BadRequest("Invalid parking lot data.");
+
+        var parkingLot = new ParkingLotModel
+        {
+            OrganizationId = orgId,
+            Name = req.Name,
+            Capacity = req.Capacity,
+            Location = req.Location,
+            Address = req.Address,
+            Tariff = req.Tariff,
+            DayTariff = req.DayTariff,
+            Lat = req.Lat,
+            Lng = req.Lng,
+            Reserved = 0,
+            Status = req.Status,
+            ClosedReason = req.ClosedReason,
+            ClosedDate = req.ClosedDate,
+            CreatedAt = DateOnly.FromDateTime(DateTime.UtcNow)
+        };
+
+        db.ParkingLots.Add(parkingLot);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/admin/organizations/{orgId}/parking-lots/{parkingLot.Id}", new
+        {
+            message = "Parking lot created for organization.",
+            organizationId = orgId,
+            parkingLotId = parkingLot.Id,
+            parkingLotName = parkingLot.Name
+        });
+    }
+
+    public static async Task<IResult> UpdateParkingLot(int id, ParkingLotCreate req, AppDbContext db)
+    {
+        if (string.IsNullOrWhiteSpace(req.Name) || req.Capacity <= 0 || string.IsNullOrWhiteSpace(req.Location) || string.IsNullOrWhiteSpace(req.Address) || req.Tariff <= 0 || req.DayTariff == null || req.Lat == 0 || req.Lng == 0)
         {
             return Results.BadRequest("Invalid parking lot data.");
         }

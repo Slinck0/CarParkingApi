@@ -7,12 +7,13 @@ public class AppDbContext : DbContext
 {
     public DbSet<ParkingLotModel> ParkingLots => Set<ParkingLotModel>();
     public DbSet<ReservationModel> Reservations => Set<ReservationModel>();
-    public DbSet<PaymentModel> Payments => Set<PaymentModel>();
+    public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<UserModel> Users => Set<UserModel>();
     public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
     public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
     public DbSet<OrganizationModel> Organizations { get; set; } = null!;
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public DbSet<DiscountModel> Discounts => Set<DiscountModel>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -48,7 +49,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.StartTime, x.EndTime });
         });
 
-        mb.Entity<PaymentModel>(e =>
+        mb.Entity<Payment>(e =>
         {
             e.ToTable("payment");
             e.HasKey(x => x.Transaction);
@@ -61,8 +62,6 @@ public class AppDbContext : DbContext
             e.Property(x => x.Issuer).HasMaxLength(64);
             e.Property(x => x.Bank).HasMaxLength(64);
             e.Property(x => x.Hash).HasMaxLength(64);
-
-            // store enum as text (optional but consistent with Reservation.Status)
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
 
             e.HasIndex(x => x.ReservationId);
@@ -111,6 +110,8 @@ public class AppDbContext : DbContext
             e.Property(x => x.LicensePlate).HasMaxLength(32);
             e.Property(x => x.StartTime).IsRequired();
             e.Property(x => x.EndTime);
+            e.Property(x => x.ParkingLotId).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.Cost).HasColumnType("decimal(10,2)");
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.VehicleId);
@@ -135,6 +136,15 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.CreatedAt);
         });
 
+        mb.Entity<DiscountModel>(e =>
+        {
+            e.ToTable("discount");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Percentage).HasColumnType("decimal(5,2)").IsRequired();
+            e.Property(x => x.ValidUntil).IsRequired();
+            e.HasIndex(x => x.Code).IsUnique();
+        });
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

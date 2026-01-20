@@ -91,7 +91,7 @@ def reservation_payload():
 def reservation_payload_missing():
         return {
             "LicensePlate": "75-KQQ-7",
-            "StartDate": "2025-12-03",
+      
             "EndDate": "2025-12-05",
             "ParkingLot": 1,
             

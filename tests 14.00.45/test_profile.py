@@ -1,80 +1,105 @@
-# test_profile.py
 import pytest
 import requests
+import uuid
+import time
+import random
+import os
+
+BASE_URL = os.getenv("BASE_URL", "http://localhost:5000")
+
+def _unique_suffix():
+    return f"{int(time.time())}_{uuid.uuid4().hex[:6]}"
 
 @pytest.fixture
 def base_url():
-    return "http://localhost:8000"
+    return BASE_URL
+
+@pytest.fixture(scope="function")
+def user_data():
+    suffix = _unique_suffix()
+    return {
+        "username": f"user_{suffix}",
+        "password": "Password123!",
+        "name": f"Test User {suffix}",
+        "email": f"test_{suffix}@example.com",
+        "phoneNumber": f"06{random.randint(10000000, 99999999)}",
+        "birthYear": 2000
+    }
 
 @pytest.fixture
-def creds():
-    return {"username": "testuser", "password": "testpass123"}
+def auth_token(base_url, user_data):
+    reg_resp = requests.post(f"{base_url}/register", json=user_data, timeout=5)
+    assert reg_resp.status_code in (200, 201), f"Register failed: {reg_resp.text}"
 
-@pytest.fixture
-def auth_token(base_url, creds):
-    # register, ignore if exists.
-    requests.post(f"{base_url}/register",
-                  json={"name": "Test User", **creds},
-                  timeout=5)
-    # login
-    r = requests.post(f"{base_url}/login", json=creds, timeout=5)
-    assert r.status_code in (200, 201), f"Login failed: {r.status_code} {r.text}"
-    #save session token
-    token = r.json().get("session_token")
-    assert token, f"No session_token in response: {r.text}"
+    login_payload = {
+        "username": user_data["username"],
+        "password": user_data["password"]
+    }
+    
+    r = requests.post(f"{base_url}/login", json=login_payload, timeout=5)
+    assert r.status_code == 200, f"Login failed: {r.status_code} {r.text}"
+    
+    data = r.json()
+    token = data.get("token")
+    assert token, f"No 'token' in response: {r.text}"
+    
     return token
 
-def json_or_text(resp: requests.Response):
-    try:
-        return resp.json()
-    except ValueError:
-        return {"_raw": resp.text}
+@pytest.fixture
+def auth_header(auth_token):
+    return {"Authorization": f"Bearer {auth_token}"}
 
-def test_get_profile_ok(base_url, auth_token, creds):
-    r = requests.get(f"{base_url}/profile",
-                     headers={"Authorization": auth_token},
-                     timeout=5)
+def test_get_profile_ok(base_url, auth_header, user_data):
+    r = requests.get(f"{base_url}/profile", headers=auth_header, timeout=5)
+    
     assert r.status_code == 200, f"{r.status_code} {r.text}"
     body = r.json()
-    assert body.get("username") == creds["username"]
+    
+    assert body.get("username") == user_data["username"]
+    assert body.get("email") == user_data["email"]
 
 def test_get_profile_unauthenticated(base_url):
     r = requests.get(f"{base_url}/profile", timeout=5)
     assert r.status_code == 401, f"Expected 401, got: {r.status_code} {r.text}"
 
-@pytest.fixture
-def profile_payload_ok():
-    # Updated user values
-    return {"name": "Renamed User", "password": "newpass456"}
+def test_update_profile_ok(base_url, auth_header):
+    suffix = _unique_suffix()
+    update_payload = {
+        "name": "Renamed User", 
+        "email": f"new_{suffix}@test.com",
+        "phoneNumber": f"06{random.randint(10000000, 99999999)}",
+        "birthYear": 1999
+    }
 
-def test_update_profile_ok(base_url, auth_token, profile_payload_ok):
     r = requests.put(f"{base_url}/profile",
-                     json=profile_payload_ok,
-                     headers={"Authorization": auth_token},
+                     json=update_payload,
+                     headers=auth_header,
                      timeout=5)
-    assert r.status_code in (200, 204), f"{r.status_code} {r.text}"
-    # Check if the server returns the expected text
-    assert "updated" in r.text.lower()
+    
+    assert r.status_code == 200, f"Update failed: {r.status_code} {r.text}"
 
-def test_update_profile_missing_password_key_causes_server_error(base_url, auth_token):
-    r = requests.put(f"{base_url}/profile",
-                     json={"name": "No Password Key"},
-                     headers={"Authorization": auth_token},
-                     timeout=5)
-    assert 500 <= r.status_code < 600, \
-        f"Expected {r.status_code} {r.text} due to missing password"
+    r_get = requests.get(f"{base_url}/profile", headers=auth_header, timeout=5)
+    body = r_get.json()
+    assert body.get("name") == "Renamed User"
+    assert body.get("email") == update_payload["email"]
 
-def test_update_profile_empty_password_allowed(base_url, auth_token):
-    # Empty string is does nothing but will return a successful status code
+def test_update_profile_bad_request(base_url, auth_header):
+    bad_payload = {
+        "name": "Bad User",
+        "email": "geen-email-adres",
+        "phoneNumber": "123",
+        "birthYear": 2000
+    }
+
     r = requests.put(f"{base_url}/profile",
-                     json={"name": "Keep Password", "password": ""},
-                     headers={"Authorization": auth_token},
+                     json=bad_payload,
+                     headers=auth_header,
                      timeout=5)
-    assert r.status_code in (200, 204), f"{r.status_code} {r.text}"
+    
+    assert r.status_code == 400, f"Expected 400 Bad Request, got {r.status_code}"
 
 def test_update_profile_unauthenticated(base_url):
-    # No auth, 401 expected
     r = requests.put(f"{base_url}/profile",
-                     json={"name": "X", "password": "y"},
+                     json={"name": "Hacker"},
                      timeout=5)
     assert r.status_code == 401, f"Expected 401, got: {r.status_code} {r.text}"

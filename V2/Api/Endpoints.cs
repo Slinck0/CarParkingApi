@@ -39,6 +39,7 @@ public static class Endpoints
       // ----------------------------------------------------
       // Reservation Endpoints
       // ----------------------------------------------------
+
       reservationGroup.MapPost("", ReservationHandlers.CreateReservation);
       reservationGroup.MapGet("/me", ReservationHandlers.GetMyReservations);
       reservationGroup.MapDelete("/{id}", ReservationHandlers.CancelReservation);
@@ -47,6 +48,7 @@ public static class Endpoints
       // ----------------------------------------------------
       // Vehicle Endpoints
       // ----------------------------------------------------
+
       app.MapPost("/vehicles", VehicleHandlers.CreateVehicle)
          .RequireAuthorization().WithTags("Vehicles").WithName("CreateVehicle");
 
