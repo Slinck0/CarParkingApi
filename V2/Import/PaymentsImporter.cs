@@ -5,6 +5,7 @@ using V2.Data;
 using V2.Models;
 using System.Diagnostics.CodeAnalysis;
 namespace V2.Import;
+
 [ExcludeFromCodeCoverage]
 public static class PaymentsImporter
 {
@@ -19,7 +20,7 @@ public static class PaymentsImporter
 
         await using var stream = File.OpenRead(jsonPath);
 
-        var batch = new List<Payment>(BatchSize);
+        var batch = new List<PaymentModel>(BatchSize);
         var badRecords = new List<object>(); // log ongeldige/dupe records
         int total = 0;
 
@@ -45,10 +46,9 @@ public static class PaymentsImporter
                 continue;
             }
 
-            // NB: normaliseer alle stringvelden die uniqueness kunnen raken
-            var entity = new Payment
+            var entity = new PaymentModel
             {
-                Transaction = tx, // genormaliseerd!
+                Transaction = tx,
                 Amount = raw.amount,
                 Initiator = raw.initiator?.Trim(),
                 Hash = raw.hash?.Trim(),
@@ -60,6 +60,7 @@ public static class PaymentsImporter
                 Issuer = raw.t_data?.issuer?.Trim(),
                 Bank = raw.t_data?.bank?.Trim()
             };
+
 
             batch.Add(entity);
             total++;
@@ -78,7 +79,6 @@ public static class PaymentsImporter
             Console.WriteLine($"Imported {total} payments (final save).");
         }
 
-        // Schrijf slechte records weg voor analyse
         if (badRecords.Count > 0)
         {
             var badPath = Path.Combine(AppContext.BaseDirectory, "bad-payments.json");
@@ -87,7 +87,7 @@ public static class PaymentsImporter
         }
     }
 
-    private static async Task FlushChunkAsync(AppDbContext db, List<Payment> batch, List<object> badRecords)
+    private static async Task FlushChunkAsync(AppDbContext db, List<PaymentModel> batch, List<object> badRecords)
     {
         // 1) Dedup binnen de batch zelf (op Transaction)
         var deduped = batch
@@ -105,7 +105,7 @@ public static class PaymentsImporter
         );
 
         // 3) Split nieuw vs bestaand
-        var toInsert = new List<Payment>(deduped.Count);
+        var toInsert = new List<PaymentModel>(deduped.Count);
         foreach (var p in deduped)
         {
             if (!existingKeys.Contains(p.Transaction))

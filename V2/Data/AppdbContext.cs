@@ -7,7 +7,7 @@ public class AppDbContext : DbContext
 {
     public DbSet<ParkingLotModel> ParkingLots => Set<ParkingLotModel>();
     public DbSet<ReservationModel> Reservations => Set<ReservationModel>();
-    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentModel> Payments => Set<PaymentModel>();
     public DbSet<UserModel> Users => Set<UserModel>();
     public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
     public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
@@ -49,7 +49,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.StartTime, x.EndTime });
         });
 
-        mb.Entity<Payment>(e =>
+        mb.Entity<PaymentModel>(e =>
         {
             e.ToTable("payment");
             e.HasKey(x => x.Transaction);
@@ -62,6 +62,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Issuer).HasMaxLength(64);
             e.Property(x => x.Bank).HasMaxLength(64);
             e.Property(x => x.Hash).HasMaxLength(64);
+
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
 
             e.HasIndex(x => x.ReservationId);
