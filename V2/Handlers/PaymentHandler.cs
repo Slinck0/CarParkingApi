@@ -1,25 +1,92 @@
-using Microsoft.AspNetCore.StaticAssets;
 using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
-public class PaymentHandler
+
+public static class PaymentHandlers
 {
-    public static async Task<IResult> GetPayments(HttpContext http, AppDbContext db)
+    public static async Task<IResult> CreatePayment(
+        HttpContext http,
+        AppDbContext db,
+        CreatePaymentRequest req)
     {
+        if (string.IsNullOrWhiteSpace(req.ReservationId) ||
+            string.IsNullOrWhiteSpace(req.Method))
+        {
+            return Results.BadRequest("Invalid payment data.");
+        }
+
         var userIdClaim = http.User?.Claims
-                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+            .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
         if (string.IsNullOrEmpty(userIdClaim))
             return Results.Unauthorized();
 
         if (!int.TryParse(userIdClaim, out int userId))
-            return Results.BadRequest("Invalid user ID in token.");
+            return Results.BadRequest("Invalid user ID.");
+
+        var reservation = await db.Reservations.FirstOrDefaultAsync(r => r.Id == req.ReservationId);
+        if (reservation == null)
+            return Results.NotFound("Reservation not found.");
+
+        if (reservation.UserId != userId)
+            return Results.Forbid();
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        var now = DateTimeOffset.UtcNow;
+
+        var payment = new PaymentModel
+        {
+            Transaction = Guid.NewGuid().ToString("N"),
+            Amount = reservation.Cost,
+            Initiator = user?.Username ?? userId.ToString(),
+            CreatedAt = now,
+            CompletedAt = now,
+            Hash = Guid.NewGuid().ToString(),
+
+            TAmount = reservation.Cost,
+            TDate = now,
+            Method = req.Method,
+            Issuer = string.Empty,
+            Bank = string.Empty,
+
+            ReservationId = reservation.Id,
+            Status = PaymentStatus.Completed
+        };
+
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/payments/{payment.Transaction}", new
+        {
+            message = "Payment created successfully.",
+            payment.Transaction,
+            payment.Amount,
+            payment.Method,
+            payment.Status,
+            payment.ReservationId,
+            payment.CreatedAt,
+            payment.CompletedAt
+        });
+    }
+
+    public static async Task<IResult> GetUserNonCompletedPayments(
+    HttpContext http,
+    AppDbContext db)
+    {
+        var userIdClaim = http.User?.Claims
+            .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim))
+            return Results.Unauthorized();
+
+        if (!int.TryParse(userIdClaim, out int userId))
+            return Results.BadRequest("Invalid user ID.");
 
         var payments = await (
             from p in db.Payments
-            join r in db.Reservations on p.ReservationId equals r.Id into pr
-            from r in pr.DefaultIfEmpty()
-            where r != null && r.UserId == userId
+            join r in db.Reservations on p.ReservationId equals r.Id
+            where r.UserId == userId
+               && p.Status != PaymentStatus.Completed
             select new
             {
                 p.Transaction,
@@ -28,201 +95,223 @@ public class PaymentHandler
                 p.Status,
                 p.CreatedAt,
                 p.CompletedAt,
-                ReservationId = p.ReservationId
+                p.ReservationId
             }).ToListAsync();
 
         return Results.Ok(payments);
     }
 
-
-    public static async Task<IResult> CreatePayment(HttpContext http, AppDbContext db, CreatePaymentRequest req)
+    public static async Task<IResult> GetUserPayments(
+        HttpContext http,
+        AppDbContext db)
     {
-        
-        if (string.IsNullOrWhiteSpace(req.Method))
-            return Results.BadRequest("Payment Method is required.");
-
-        if (string.IsNullOrWhiteSpace(req.ReservationId) && string.IsNullOrWhiteSpace(req.ParkingSessionId))
-            return Results.BadRequest("Either ReservationId or ParkingSessionId must be provided.");
-
         var userIdClaim = http.User?.Claims
             .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
 
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+        if (string.IsNullOrEmpty(userIdClaim))
             return Results.Unauthorized();
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        if (user == null) return Results.Unauthorized();
+        if (!int.TryParse(userIdClaim, out int userId))
+            return Results.BadRequest("Invalid user ID.");
 
-        decimal originalAmount = 0;
-
-        ReservationModel reservationToUpdate = null;
-        ParkingSessionModel sessionToUpdate = null;
-
-        if (!string.IsNullOrWhiteSpace(req.ReservationId))
+        var payments = await (
+        from p in db.Payments
+        join r in db.Reservations on p.ReservationId equals r.Id
+        where r.UserId == userId
+        && p.Status == PaymentStatus.Completed
+        select new
         {
-            reservationToUpdate = await db.Reservations.FirstOrDefaultAsync(r => r.Id == req.ReservationId);
-            
-            if (reservationToUpdate == null) return Results.NotFound("Reservation not found.");
-            if (reservationToUpdate.UserId != userId) return Results.Forbid();
-            if (reservationToUpdate.Status == ReservationStatus.paid) return Results.BadRequest("Already paid.");
+            p.Transaction,
+            p.Amount,
+            p.Method,
+            p.Status,
+            p.CreatedAt,
+            p.CompletedAt,
+            p.ReservationId
+        }).ToListAsync();
 
-            originalAmount = (decimal)reservationToUpdate.Cost;
+
+        return Results.Ok(payments);
+    }
+
+    public record AdminUpdatePaymentRequest(
+    decimal? Amount,
+    string? Method,
+    PaymentStatus? Status
+);
+
+    public static async Task<IResult> AdminCancelUserPayment(
+        AppDbContext db,
+        string transaction)
+    {
+        var payment = await db.Payments.FirstOrDefaultAsync(p => p.Transaction == transaction);
+        if (payment == null)
+            return Results.NotFound("Payment not found.");
+
+        if (payment.Status == PaymentStatus.Pending)
+        {
+            payment.Status = PaymentStatus.Failed;
+            payment.CompletedAt = DateTimeOffset.UtcNow;
         }
-        else if (!string.IsNullOrWhiteSpace(req.ParkingSessionId))
+        else if (payment.Status == PaymentStatus.Completed)
         {
-            if (!int.TryParse(req.ParkingSessionId, out int pSessionId)) 
-                return Results.BadRequest("Invalid ParkingSession ID format.");
-            
-            sessionToUpdate = await db.ParkingSessions.FirstOrDefaultAsync(p => p.Id == pSessionId);
-
-            if (sessionToUpdate == null) return Results.NotFound("Parking session not found.");
-            if (sessionToUpdate.UserId != userId) return Results.Forbid();
-            
-
-            originalAmount = (decimal)sessionToUpdate.Cost;
+            payment.Status = PaymentStatus.Refunded;
+            payment.CompletedAt = DateTimeOffset.UtcNow;
         }
-
-        // 3. Discount Toepassen (Via Database Lookup op basis van jouw DiscountModel)
-        decimal finalAmount = originalAmount;
-        
-        if (!string.IsNullOrWhiteSpace(req.DiscountCode))
+        else
         {
-            // Zorg dat je 'Discounts' DbSet in je AppDbContext hebt staan!
-            var discount = await db.Discounts
-                .FirstOrDefaultAsync(d => d.Code == req.DiscountCode);
-            
-            if (discount != null)
-            {
-                // Check of korting nog geldig is (ValidUntil is DateTimeOffset volgens jouw model)
-                if (discount.ValidUntil >= DateTimeOffset.UtcNow)
-                {
-                    // Jouw model heeft 'Percentage'
-                    if (discount.Percentage > 0)
-                    {
-                        finalAmount = originalAmount * (1 - (discount.Percentage / 100m));
-                    }
-                }
-            }
-        }
-        
-        // Zorg dat het bedrag niet negatief wordt
-        if (finalAmount < 0) finalAmount = 0;
-
-        // 4. Betaling aanmaken
-        var initiator = user.Username ?? userId.ToString();
-        var now = DateTimeOffset.UtcNow;
-        var transactionId = Guid.NewGuid().ToString("N");
-        var hash = Guid.NewGuid().ToString();
-
-        var payment = new Payment
-        {
-            Transaction = transactionId,
-            Amount = finalAmount,    // Het bedrag MET korting
-            TAmount = originalAmount, // Het originele bedrag
-            
-            Initiator = initiator,
-            CreatedAt = now,
-            CompletedAt = now,
-            Hash = hash,
-            TDate = now,
-            Method = req.Method,
-            Issuer = string.Empty,
-            Bank = string.Empty,
-            Status = PaymentStatus.Completed,
-
-            ReservationId = reservationToUpdate?.Id,
-            // ParkingSessionId = sessionToUpdate?.Id 
-        };
-
-        db.Payments.Add(payment);
-
-        // 5. Update de status van het item naar 'Paid'
-        if (reservationToUpdate != null)
-        {
-            reservationToUpdate.Status = ReservationStatus.paid;
-        }
-        if (sessionToUpdate != null)
-        {
-            sessionToUpdate.Status = "Paid";
+            return Results.BadRequest($"Cannot cancel payment with status '{payment.Status}'.");
         }
 
         await db.SaveChangesAsync();
 
-        // 6. Response
-        var response = new
+        return Results.Ok(new
         {
             payment.Transaction,
-            PaidAmount = payment.Amount,
-            OriginalAmount = originalAmount,
-            DiscountCode = req.DiscountCode,
-            DiscountApplied = originalAmount > finalAmount,
+            payment.Amount,
             payment.Method,
             payment.Status,
             payment.ReservationId,
-            payment.CreatedAt
-        };
-
-        return Results.Created($"/payments/{payment.Transaction}", response);
+            payment.CreatedAt,
+            payment.CompletedAt
+        });
     }
 
-
-    public static async Task<IResult> UpcomingPayments(HttpContext http, AppDbContext db)
+    public static async Task<IResult> AdminUpdatePayment(
+        AppDbContext db,
+        string transaction,
+        AdminUpdatePaymentRequest req)
     {
-        var userIdClaim = http.User?.Claims
-                .FirstOrDefault(c => c.Type == "sub" || c.Type.EndsWith("/nameidentifier"))?.Value;
-        
-        if (string.IsNullOrEmpty(userIdClaim))
-            return Results.Unauthorized();
-            
-        if (!int.TryParse(userIdClaim, out int userId))
-            return Results.BadRequest("Invalid user ID in token.");
+        var payment = await db.Payments.FirstOrDefaultAsync(p => p.Transaction == transaction);
+        if (payment == null)
+            return Results.NotFound("Payment not found.");
 
-        var allReservations = await db.Reservations
-            .Where(r => r.UserId == userId)
-            .ToListAsync();
-
-        var reservationsList = allReservations
-            .Where(r => r.Status != ReservationStatus.cancelled && r.Status != ReservationStatus.paid)
-            .ToList();
-
-        var AllparkingList = await db.ParkingSessions
-            .Where(p => p.UserId == userId)
-            .ToListAsync();
-
-        var parkingList = AllparkingList
-        .Where(p => p.Status != "cancelled" && p.Status != "Paid")
-        .ToList();
-
-        var combinedList = new List<object>();
-
-        foreach (var r in reservationsList)
+        if (req.Amount.HasValue)
         {
-            combinedList.Add(new 
-            {
-                Id = r.Id,
-                Type = "Reservation",
-                Date = r.StartTime.DateTime, 
-                Amount = r.Cost,
-                Status = r.Status.ToString()
-            });
+            if (req.Amount.Value <= 0)
+                return Results.BadRequest("Amount must be > 0.");
+
+            payment.Amount = req.Amount.Value;
+            payment.TAmount = req.Amount.Value;
         }
 
-        foreach (var p in parkingList)
-        {
-            combinedList.Add(new 
-            {
-                Id = p.Id,
-                Type = "ParkingSession",
-                Date = p.StartTime,
-                Amount = p.Cost,
-                Status = p.Status.ToString()
-            });
-        }
-        var sortedList = combinedList
-            .OrderBy(x => ((dynamic)x).Date)
-            .ToList();
+        if (!string.IsNullOrWhiteSpace(req.Method))
+            payment.Method = req.Method;
 
-        return Results.Ok(sortedList);
+        if (req.Status.HasValue)
+        {
+            payment.Status = req.Status.Value;
+
+            if (payment.Status != PaymentStatus.Pending)
+                payment.CompletedAt = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            payment.Transaction,
+            payment.Amount,
+            payment.Method,
+            payment.Status,
+            payment.ReservationId,
+            payment.CreatedAt,
+            payment.CompletedAt
+        });
     }
+
+    public record OrgRoleRequest(string OrganizationRole);
+
+    public static async Task<IResult> AdminAssignUserToOrganization(
+        int orgId,
+        int userId,
+        OrgRoleRequest req,
+        AppDbContext db)
+    {
+        var role = (req.OrganizationRole ?? "").Trim().ToUpperInvariant();
+        if (role != "ADMIN" && role != "EMPLOYEE")
+            return Results.BadRequest("OrganizationRole must be 'ADMIN' or 'EMPLOYEE'.");
+
+        var orgExists = await db.Organizations.AnyAsync(o => o.Id == orgId);
+        if (!orgExists) return Results.NotFound("Organization not found.");
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return Results.NotFound("User not found.");
+
+        user.OrganizationId = orgId;
+        user.OrganizationRole = role;
+
+        var vehicles = await db.Vehicles.Where(v => v.UserId == userId).ToListAsync();
+        foreach (var v in vehicles)
+            v.OrganizationId = orgId;
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            message = "User assigned to organization.",
+            userId = user.Id,
+            organizationId = orgId,
+            organizationRole = user.OrganizationRole,
+            vehiclesUpdated = vehicles.Count
+        });
+    }
+
+    public static async Task<IResult> AdminRemoveUserFromOrganization(
+        int orgId,
+        int userId,
+        AppDbContext db)
+    {
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return Results.NotFound("User not found.");
+
+        if (user.OrganizationId != orgId)
+            return Results.Conflict("User is not assigned to this organization.");
+
+        user.OrganizationId = null;
+        user.OrganizationRole = null;
+
+        var vehicles = await db.Vehicles.Where(v => v.UserId == userId).ToListAsync();
+        foreach (var v in vehicles)
+            v.OrganizationId = null;
+
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            message = "User removed from organization.",
+            userId = user.Id,
+            organizationId = orgId,
+            vehiclesUpdated = vehicles.Count
+        });
+    }
+
+    public static async Task<IResult> AdminUpdateUserOrganizationRole(
+        int orgId,
+        int userId,
+        OrgRoleRequest req,
+        AppDbContext db)
+    {
+        var role = (req.OrganizationRole ?? "").Trim().ToUpperInvariant();
+        if (role != "ADMIN" && role != "EMPLOYEE")
+            return Results.BadRequest("OrganizationRole must be 'ADMIN' or 'EMPLOYEE'.");
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null) return Results.NotFound("User not found.");
+
+        if (user.OrganizationId != orgId)
+            return Results.Conflict("User is not assigned to this organization.");
+
+        user.OrganizationRole = role;
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            message = "Organization role updated.",
+            userId = user.Id,
+            organizationId = orgId,
+            organizationRole = user.OrganizationRole
+        });
+    }
+
 }
-    

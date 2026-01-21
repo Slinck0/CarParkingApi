@@ -3,28 +3,25 @@ using Moq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using V2.Data;
 using V2.Models;
-using V2.Handlers;
 using V2.Helpers;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
 using System.Linq;
-using System.Reflection;
 
 namespace ParkingApi.Tests.Handlers;
 
-public class PaymentHandlerTests
+public class PaymentHandlersTests
 {
     private Mock<HttpContext> CreateMockHttp(int userId)
     {
         var mockHttp = new Mock<HttpContext>();
-        var claims = new Claim[] 
-        { 
+        var claims = new Claim[]
+        {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim("sub", userId.ToString()) 
+            new Claim("sub", userId.ToString())
         };
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);
@@ -37,113 +34,91 @@ public class PaymentHandlerTests
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
         var userId = 10;
-        
-        db.Users.Add(new UserModel 
-        { 
-            Id = userId, Username = "Klant", Email = "k@k.nl", Name = "Klant Naam", Password = "Wachtwoord123", Phone = "0612345678", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true 
-        });
-
-        db.Reservations.Add(new ReservationModel 
-        { 
-            Id = "res-1", UserId = userId, Cost = 50.0m, Status = ReservationStatus.confirmed 
-        });
-        db.SaveChanges();
-
-        var req = new CreatePaymentRequest { ReservationId = "res-1", Method = "CreditCard" };
-        var mockHttp = CreateMockHttp(userId);
-
-        var result = await PaymentHandler.CreatePayment(mockHttp.Object, db, req);
-
-        var createdResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
-        Assert.Equal(201, createdResult.StatusCode);
-
-        var payment = await db.Payments.FirstOrDefaultAsync();
-        Assert.NotNull(payment);
-        Assert.Equal(50.0m, payment.Amount);
-        
-        var res = await db.Reservations.FindAsync("res-1");
-        Assert.Equal(ReservationStatus.paid, res!.Status); 
-    }
-
-    [Fact]
-    public async Task CreatePayment_ReturnsCreated_WhenPayingParkingSession_Success()
-    {
-        using var db = DbContextHelper.GetInMemoryDbContext();
-        var userId = 20;
-
-        db.Users.Add(new UserModel
-        { 
-            Id = userId, Username = "Parkeerder", Email="p@p.nl", Name = "Parkeerder Naam", Password = "Wachtwoord123", Phone = "0687654321", CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true 
-        });
-
-        db.ParkingSessions.Add(new ParkingSessionModel
-        { 
-            Id = 100, UserId = userId, Cost = 12.50m, Status = "Ended", StartTime = DateTime.Now.AddHours(-2), LicensePlate = "AA-BB-CC"
-        });
-        db.SaveChanges();
-
-        var req = new CreatePaymentRequest { ParkingSessionId = "100", Method = "Ideal" };
-        var mockHttp = CreateMockHttp(userId);
-
-        var result = await PaymentHandler.CreatePayment(mockHttp.Object, db, req);
-
-        var createdResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
-        Assert.Equal(201, createdResult.StatusCode);
-        
-        var session = await db.ParkingSessions.FindAsync(100);
-        Assert.Equal("Paid", session!.Status);
-    }
-
-    [Fact]
-    public async Task CreatePayment_CalculatesDiscount_Correctly()
-    {
-        using var db = DbContextHelper.GetInMemoryDbContext();
-        var userId = 30;
 
         db.Users.Add(new UserModel
         {
             Id = userId,
-            Username = "KortingJager",
-            Email = "d@d.nl",
-            Name = "Jager Naam",
+            Username = "Klant",
+            Email = "k@k.nl",
+            Name = "Klant Naam",
             Password = "Wachtwoord123",
-            Phone = "0611223344",
+            Phone = "0612345678",
             CreatedAt = DateOnly.FromDateTime(DateTime.Now),
             Active = true
         });
 
-        db.Reservations.Add(new ReservationModel { Id = "res-disc", UserId = userId, Cost = 100.0m, Status = ReservationStatus.confirmed });
-
-        db.Discounts.Add(new DiscountModel
+        db.Reservations.Add(new ReservationModel
         {
-            Id = 1,
-            Code = "SUMMER20",
-            Percentage = 20,
-            ValidUntil = DateTimeOffset.UtcNow.AddDays(1)
+            Id = "res-1",
+            UserId = userId,
+            Cost = 50.0m,
+            Status = ReservationStatus.confirmed
         });
         db.SaveChanges();
 
-        var req = new CreatePaymentRequest
-        {
-            ReservationId = "res-disc",
-            Method = "Paypal",
-            DiscountCode = "SUMMER20"
-        };
-
+        var req = new CreatePaymentRequest("res-1", "CreditCard");
         var mockHttp = CreateMockHttp(userId);
 
-        var result = await PaymentHandler.CreatePayment(mockHttp.Object, db, req);
+        var result = await PaymentHandlers.CreatePayment(mockHttp.Object, db, req);
 
         var createdResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(201, createdResult.StatusCode);
 
-        var payment = await db.Payments.FirstOrDefaultAsync();
-        Assert.Equal(80.0m, payment!.Amount);
-        Assert.Equal(100.0m, payment.TAmount);
+        var payment = await db.Payments.Cast<PaymentModel>().FirstOrDefaultAsync();
+        Assert.NotNull(payment);
+        Assert.Equal(50.0m, payment!.Amount);
+        Assert.Equal("res-1", payment.ReservationId);
+        Assert.Equal(PaymentStatus.Completed, payment.Status);
     }
 
     [Fact]
-    public async Task GetPayments_ReturnsOk_WithList_WhenUserHasPayments()
+    public async Task CreatePayment_ReturnsNotFound_WhenReservationDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var userId = 10;
+
+        db.Users.Add(new UserModel
+        {
+            Id = userId,
+            Username = "U",
+            Email = "e",
+            Name = "n",
+            Password = "pw",
+            Phone = "06",
+            CreatedAt = DateOnly.MinValue,
+            Active = true
+        });
+        db.SaveChanges();
+
+        var req = new CreatePaymentRequest("missing", "Card");
+        var mockHttp = CreateMockHttp(userId);
+
+        var result = await PaymentHandlers.CreatePayment(mockHttp.Object, db, req);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task CreatePayment_ReturnsForbidden_WhenPayingForOtherUser()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var myId = 10;
+        var otherId = 99;
+
+        db.Users.Add(new UserModel { Id = myId, Username = "Me", Email = "e", Name = "Ik", Password = "pw", Phone = "06", CreatedAt = DateOnly.MinValue, Active = true });
+        db.Reservations.Add(new ReservationModel { Id = "res-other", UserId = otherId, Cost = 10m, Status = ReservationStatus.confirmed });
+        db.SaveChanges();
+
+        var req = new CreatePaymentRequest("res-other", "Card");
+        var mockHttp = CreateMockHttp(myId);
+
+        var result = await PaymentHandlers.CreatePayment(mockHttp.Object, db, req);
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task GetUserPayments_ReturnsOk_WithList_WhenUserHasCompletedPayments()
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
         var userId = 100;
@@ -151,13 +126,16 @@ public class PaymentHandlerTests
         db.Users.Add(new UserModel { Id = userId, Username = "Klant", Email = "a", Name = "b", Password = "p", Phone = "06", Active = true });
         db.Reservations.Add(new ReservationModel { Id = "res-1", UserId = userId, Cost = 25.00m, Status = ReservationStatus.paid });
 
-        db.Payments.Add(new Payment
+        db.Payments.Add(new PaymentModel
         {
             Transaction = "trans-123",
             ReservationId = "res-1",
             Amount = 25.00m,
+            TAmount = 25.00m,
+            TDate = DateTimeOffset.UtcNow,
             Status = PaymentStatus.Completed,
             CreatedAt = DateTimeOffset.UtcNow,
+            CompletedAt = DateTimeOffset.UtcNow,
             Method = "Ideal",
             Initiator = "System",
             Hash = "dummy-hash-123",
@@ -168,19 +146,17 @@ public class PaymentHandlerTests
 
         var mockHttp = CreateMockHttp(userId);
 
-        var result = await PaymentHandler.GetPayments(mockHttp.Object, db);
+        var result = await PaymentHandlers.GetUserPayments(mockHttp.Object, db);
 
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
 
-        var resultType = result.GetType();
-        var valueProp = resultType.GetProperty("Value");
-        var val = valueProp?.GetValue(result);
-
+        var val = result.GetType().GetProperty("Value")?.GetValue(result);
         var list = Assert.IsAssignableFrom<IEnumerable<object>>(val);
-        Assert.Single(list);
 
+        Assert.Single(list);
         var item = list.First();
+
         var transProp = item.GetType().GetProperty("Transaction");
         var amountProp = item.GetType().GetProperty("Amount");
 
@@ -189,55 +165,61 @@ public class PaymentHandlerTests
     }
 
     [Fact]
-    public async Task GetPayments_ReturnsEmptyList_WhenUserHasNoPayments()
+    public async Task GetUserNonCompletedPayments_ReturnsOk_WithList_WhenUserHasPendingPayments()
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
-        var userId = 200; 
+        var userId = 200;
 
-        var otherUser = 999;
-        db.Reservations.Add(new ReservationModel { Id = "res-other", UserId = otherUser, Cost = 10 });
-        
-        db.Payments.Add(new Payment 
-        { 
-            Transaction = "trans-other", 
-            ReservationId = "res-other", 
-            Amount = 10,
-            Status = PaymentStatus.Completed,
+        db.Users.Add(new UserModel { Id = userId, Username = "Klant", Email = "a", Name = "b", Password = "p", Phone = "06", Active = true });
+        db.Reservations.Add(new ReservationModel { Id = "res-pending", UserId = userId, Cost = 10.00m, Status = ReservationStatus.confirmed });
+
+        db.Payments.Add(new PaymentModel
+        {
+            Transaction = "trans-pending",
+            ReservationId = "res-pending",
+            Amount = 10.00m,
+            TAmount = 10.00m,
+            TDate = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Pending,
             CreatedAt = DateTimeOffset.UtcNow,
+            CompletedAt = DateTimeOffset.UtcNow,
             Method = "Card",
-            Initiator = "OtherUser",
-            Hash = "hash-other",
-            Issuer = "BankB",
-            Bank = "Rabo"
+            Initiator = "System",
+            Hash = "hash",
+            Issuer = "Bank",
+            Bank = "ING"
         });
         db.SaveChanges();
 
         var mockHttp = CreateMockHttp(userId);
 
-        var result = await PaymentHandler.GetPayments(mockHttp.Object, db);
+        var result = await PaymentHandlers.GetUserNonCompletedPayments(mockHttp.Object, db);
 
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
 
         var val = result.GetType().GetProperty("Value")?.GetValue(result);
         var list = Assert.IsAssignableFrom<IEnumerable<object>>(val);
-        
-        Assert.Empty(list); 
+
+        Assert.Single(list);
     }
 
     [Fact]
-    public async Task GetPayments_DoesNotReturnPayments_WithoutReservation()
+    public async Task GetUserPayments_DoesNotReturnPayments_WithoutReservation()
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
         var userId = 300;
 
-        db.Payments.Add(new Payment
+        db.Payments.Add(new PaymentModel
         {
             Transaction = "orphan-payment",
-            ReservationId = "res-deleted", 
+            ReservationId = "res-deleted",
             Amount = 50.00m,
+            TAmount = 50.00m,
+            TDate = DateTimeOffset.UtcNow,
             Status = PaymentStatus.Completed,
             CreatedAt = DateTimeOffset.UtcNow,
+            CompletedAt = DateTimeOffset.UtcNow,
             Method = "Cash",
             Initiator = "System",
             Hash = "hash-orphan",
@@ -248,85 +230,14 @@ public class PaymentHandlerTests
 
         var mockHttp = CreateMockHttp(userId);
 
-        var result = await PaymentHandler.GetPayments(mockHttp.Object, db);
+        var result = await PaymentHandlers.GetUserPayments(mockHttp.Object, db);
 
         var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
 
         var val = result.GetType().GetProperty("Value")?.GetValue(result);
         var list = Assert.IsAssignableFrom<IEnumerable<object>>(val);
-        
+
         Assert.Empty(list);
-    }
-    
-    [Fact]
-    public async Task CreatePayment_ReturnsBadRequest_WhenAlreadyPaid()
-    {
-        using var db = DbContextHelper.GetInMemoryDbContext();
-        var userId = 10;
-
-        db.Users.Add(new UserModel { Id = userId, Username="U", Email="e", Name = "Test", Password = "pw", Phone = "06", CreatedAt=DateOnly.MinValue, Active=true });
-        db.Reservations.Add(new ReservationModel { Id = "res-paid", UserId = userId, Cost = 10m, Status = ReservationStatus.paid });
-        db.SaveChanges();
-
-        var req = new CreatePaymentRequest { ReservationId = "res-paid", Method = "Card" };
-        var mockHttp = CreateMockHttp(userId);
-
-        var result = await PaymentHandler.CreatePayment(mockHttp.Object, db, req);
-
-        Assert.IsType<BadRequest<string>>(result);
-    }
-
-    [Fact]
-    public async Task CreatePayment_ReturnsForbidden_WhenPayingForOtherUser()
-    {
-        using var db = DbContextHelper.GetInMemoryDbContext();
-        var myId = 10;
-        var otherId = 99;
-
-        db.Users.Add(new UserModel { Id = myId, Username="Me", Email="e", Name = "Ik", Password = "pw", Phone = "06", CreatedAt=DateOnly.MinValue, Active=true });
-        db.Reservations.Add(new ReservationModel { Id = "res-other", UserId = otherId, Cost = 10m });
-        db.SaveChanges();
-
-        var req = new CreatePaymentRequest { ReservationId = "res-other", Method = "Card" };
-        var mockHttp = CreateMockHttp(myId);
-
-        var result = await PaymentHandler.CreatePayment(mockHttp.Object, db, req);
-
-        Assert.IsType<ForbidHttpResult>(result);
-    }
-
-    [Fact]
-    public async Task UpcomingPayments_ReturnsCorrectList()
-    {
-        using var db = DbContextHelper.GetInMemoryDbContext();
-        var userId = 50;
-
-        db.Reservations.Add(new ReservationModel
-        { 
-            Id = "res-unpaid", UserId = userId, Cost = 20m, Status = ReservationStatus.confirmed, 
-            StartTime = DateTime.UtcNow.AddDays(1) 
-        });
-        
-        db.Reservations.Add(new ReservationModel
-        { 
-            Id = "res-paid", UserId = userId, Cost = 20m, Status = ReservationStatus.paid 
-        });
-
-        db.ParkingSessions.Add(new ParkingSessionModel
-        { 
-            Id = 500, UserId = userId, Cost = 5.50m, Status = "Ended", 
-            StartTime = DateTime.UtcNow.AddHours(-5), LicensePlate = "AA"
-        });
-
-        db.SaveChanges();
-        var mockHttp = CreateMockHttp(userId);
-
-        var result = await PaymentHandler.UpcomingPayments(mockHttp.Object, db);
-
-        var okResult = Assert.IsType<Ok<List<object>>>(result);
-        var list = okResult.Value;
-        
-        Assert.Equal(2, list!.Count); 
     }
 }

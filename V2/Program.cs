@@ -2,7 +2,8 @@ using V2.Endpoints;
 using V2.Services;
 using V2.Data;
 using V2.Api;
-using V2.Models; // Zorg dat je de namespace van UserModel hebt
+using Microsoft.Extensions.DependencyInjection;
+using V2.Models;
 
 public class Program
 {
@@ -10,11 +11,18 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddAppServices(builder.Configuration); 
+        builder.Services.AddAppServices(builder.Configuration);
         builder.Services.AddJwtAuthentication(builder.Configuration);
+        builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerDocumentation();
 
         var app = builder.Build();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.EnsureCreated();
+        }
 
         app.UseSwaggerDocumentation();
         app.UseAuthentication();
@@ -26,7 +34,7 @@ public class Program
             var services = scope.ServiceProvider;
             var db = services.GetRequiredService<AppDbContext>();
 
-            
+
             db.Database.EnsureCreated();
 
 
@@ -46,21 +54,20 @@ public class Program
                 db.SaveChanges();
             }
             if (!db.ParkingLots.Any(p => p.Id == 1))
-        {
-            db.ParkingLots.Add(new ParkingLotModel 
             {
-                Id = 1,
-                Name = "Test Garage CI",
-                Location = "Rotterdam",
-                Address = "Stationstraat 1",
-                Capacity = 100,
-                Tariff = 2.50m,
-                Status = "Open"
-            });
-        }
+                db.ParkingLots.Add(new ParkingLotModel
+                {
+                    Id = 1,
+                    Name = "Test Garage CI",
+                    Location = "Rotterdam",
+                    Address = "Stationstraat 1",
+                    Capacity = 100,
+                    Tariff = 2.50m,
+                    Status = "Open"
+                });
+            }
 
-            // 3. Je bestaande import logica
-            if(args.Contains("import"))
+            if (args.Contains("import"))
             {
                 Console.WriteLine("Starten importeren JSON-data...");
                 AppInt.ImportJson().Wait();

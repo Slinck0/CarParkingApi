@@ -9,6 +9,8 @@ public class UserModel
     public string Email { get; set; } = null!;
     public string Phone { get; set; } = null!;
     public string Role { get; set; } = "USER";
+    public int? OrganizationId { get; set; } //Welke organisatie de gebruiker toebehoort
+    public string? OrganizationRole { get; set; } // ("EMPLOYEE", "ADMIN")
     public DateOnly CreatedAt { get; set; }
     public int? BirthYear { get; set; }
     public bool Active { get; set; }
