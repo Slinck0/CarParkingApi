@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using ParkingApi.Tests.Helpers;
+using V2.Services;
 using Xunit;
 
 public class JwtExtensionsTests
@@ -11,26 +12,18 @@ public class JwtExtensionsTests
     [Fact]
     public void AddJwtAuthentication_RegistersJwtAndAdminPolicy()
     {
-        // Arrange
         var services = new ServiceCollection();
         var config = TestConfigHelper.GetTestConfiguration();
 
-        // Act
         services.AddJwtAuthentication(config);
         var provider = services.BuildServiceProvider();
 
-        // Assert JWT authentication
         var schemeProvider = provider.GetRequiredService<IAuthenticationSchemeProvider>();
-        var scheme = schemeProvider
-            .GetSchemeAsync(JwtBearerDefaults.AuthenticationScheme)
-            .Result;
-
+        var scheme = schemeProvider.GetSchemeAsync(JwtBearerDefaults.AuthenticationScheme).Result;
         Assert.NotNull(scheme);
 
-        // Assert ADMIN policy
         var policyProvider = provider.GetRequiredService<IAuthorizationPolicyProvider>();
         var adminPolicy = policyProvider.GetPolicyAsync("ADMIN").Result;
-
         Assert.NotNull(adminPolicy);
     }
 
@@ -44,10 +37,7 @@ public class JwtExtensionsTests
         var provider = services.BuildServiceProvider();
 
         var schemeProvider = provider.GetRequiredService<IAuthenticationSchemeProvider>();
-        var scheme = schemeProvider
-            .GetSchemeAsync(JwtBearerDefaults.AuthenticationScheme)
-            .Result;
-
+        var scheme = schemeProvider.GetSchemeAsync(JwtBearerDefaults.AuthenticationScheme).Result;
         Assert.NotNull(scheme);
     }
 }
