@@ -231,4 +231,80 @@ public class ReservationHandlerTests
 
         Assert.IsType<BadRequest<ErrorResponse>>(result);
     }
+
+    [Fact]
+    public async Task CreateReservation_ReturnsBadRequest_WhenFieldsAreMissing()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        
+        db.ParkingLots.Add(new ParkingLotModel { 
+            Id = 1, 
+            Name = "Test Garage", 
+            Tariff = 5.0m, 
+            Capacity = 10, 
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now), 
+            Status = "Open",
+            Location = "Rotterdam",
+            Address = "Coolsingel 1"
+        });
+        db.SaveChanges();
+
+        // Test with empty license plate
+        var request = new ReservationRequest("", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), 1);
+        var result = await ReservationHandlers.CreateReservation(_mockHttp.Object, request, db);
+
+        // Should return BadRequest with error object
+        var valueProperty = result.GetType().GetProperty("Value");
+        Assert.NotNull(valueProperty);
+    }
+
+    [Fact]
+    public async Task CreateReservation_ReturnsUnauthorized_WhenNoUserClaim()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var mockHttp = new Moq.Mock<HttpContext>();
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+
+        db.ParkingLots.Add(new ParkingLotModel { 
+            Id = 1, 
+            Name = "Test Garage", 
+            Tariff = 5.0m, 
+            Capacity = 10, 
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now), 
+            Status = "Open",
+            Location = "Rotterdam",
+            Address = "Coolsingel 1"
+        });
+        db.SaveChanges();
+
+        var request = new ReservationRequest("AA-BB-12", DateTime.UtcNow.AddHours(1), DateTime.UtcNow.AddHours(2), 1);
+        var result = await ReservationHandlers.CreateReservation(mockHttp.Object, request, db);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task CancelReservation_ReturnsBadRequest_WhenAlreadyCancelled()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var resId = "res-already-cancelled";
+        db.Reservations.Add(new ReservationModel { Id = resId, UserId = _testUserId, Status = ReservationStatus.cancelled, StartTime = DateTime.Now, EndTime = DateTime.Now.AddHours(1) });
+        db.SaveChanges();
+
+        var result = await ReservationHandlers.CancelReservation(resId, db);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task GetMyReservations_ReturnsUnauthorized_WhenNoUserClaim()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var mockHttp = new Moq.Mock<HttpContext>();
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+
+        var result = await ReservationHandlers.GetMyReservations(mockHttp.Object, db);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
 }

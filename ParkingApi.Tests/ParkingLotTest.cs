@@ -1,4 +1,5 @@
 using Xunit;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using V2.Models;
@@ -216,5 +217,147 @@ public class ParkingLotHandlerTests
         var result = await ParkingLotHandlers.AdminDeleteParkingLotFromOrganization(1, 999, db);
 
         Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminCreateParkingLotForOrganization_ReturnsNotFound_WhenOrgDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var request = new ParkingLotCreate(
+            "Org Lot",
+            "Amsterdam",
+            "Street 1",
+            100,
+            0,
+            5m,
+            25m,
+            52.0,
+            4.0,
+            "Open",
+            null,
+            null
+        );
+
+        var result = await ParkingLotHandlers.AdminCreateParkingLotForOrganization(999, request, db);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminCreateParkingLotForOrganization_ReturnsBadRequest_WhenDataInvalid()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        db.Organizations.Add(new OrganizationModel { Id = 1, Name = "Org 1" });
+        db.SaveChanges();
+
+        var invalidRequest = new ParkingLotCreate("", "L", "A", 0, 0, 1m, 1m, 1, 1, "Open", null, null);
+
+        var result = await ParkingLotHandlers.AdminCreateParkingLotForOrganization(1, invalidRequest, db);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminGetOrganizationParkingLots_ReturnsNotFound_WhenOrgDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var result = await ParkingLotHandlers.AdminGetOrganizationParkingLots(999, db);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminGetOrganizationParkingLots_ReturnsEmptyList_WhenOrgHasNoLots()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        db.Organizations.Add(new OrganizationModel { Id = 1, Name = "Empty Org" });
+        db.SaveChanges();
+
+        var result = await ParkingLotHandlers.AdminGetOrganizationParkingLots(1, db);
+
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(200, statusCodeResult.StatusCode);
+
+        var valueProperty = result.GetType().GetProperty("Value");
+        var value = valueProperty?.GetValue(result);
+        var countProp = value?.GetType().GetProperty("count");
+        Assert.Equal(0, countProp?.GetValue(value));
+    }
+
+    [Fact]
+    public async Task CreateParkingLot_ReturnsBadRequest_WhenMissingLocation()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var request = new ParkingLotCreate(
+            "Garage",
+            "",  // Missing location
+            "Coolsingel 10",
+            100,
+            0,
+            5.0m,
+            25.0m,
+            51.9225,
+            4.47917,
+            "Open",
+            null,
+            null
+        );
+
+        var result = await ParkingLotHandlers.CreateParkingLot(request, db);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task CreateParkingLot_ReturnsBadRequest_WhenMissingDayTariff()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var request = new ParkingLotCreate(
+            "Garage",
+            "Rotterdam",
+            "Coolsingel 10",
+            100,
+            0,
+            5.0m,
+            null,  // Missing DayTariff
+            51.9225,
+            4.47917,
+            "Open",
+            null,
+            null
+        );
+
+        var result = await ParkingLotHandlers.CreateParkingLot(request, db);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task CreateParkingLot_ReturnsBadRequest_WhenLatIsZero()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var request = new ParkingLotCreate(
+            "Garage",
+            "Rotterdam",
+            "Coolsingel 10",
+            100,
+            0,
+            5.0m,
+            25.0m,
+            0,  // Invalid Lat
+            4.47917,
+            "Open",
+            null,
+            null
+        );
+
+        var result = await ParkingLotHandlers.CreateParkingLot(request, db);
+
+        Assert.IsType<BadRequest<string>>(result);
     }
 }
