@@ -216,4 +216,83 @@ public class VehicleHandlerTests
         Assert.IsType<UnauthorizedHttpResult>(result);
         Assert.Single(db.Vehicles);
     }
+
+    [Fact]
+    public async Task GetMyVehicles_ReturnsEmptyList_WhenUserHasNoVehicles()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var mockHttp = CreateMockHttp(10);
+
+        var result = await VehicleHandlers.GetMyVehicles(mockHttp.Object, db);
+
+        var okResult = Assert.IsType<Ok<List<VehicleModel>>>(result);
+        Assert.Empty(okResult.Value!);
+    }
+
+    [Fact]
+    public async Task GetMyVehicles_ReturnsUnauthorized_WhenNoUserClaim()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var mockHttp = new Mock<HttpContext>();
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+
+        var result = await VehicleHandlers.GetMyVehicles(mockHttp.Object, db);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteVehicle_ReturnsNotFound_WhenVehicleDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var mockHttp = CreateMockHttp(50);
+
+        var result = await VehicleHandlers.DeleteVehicle(999, mockHttp.Object, db);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateVehicle_ReturnsBadRequest_WhenFieldsAreMissing()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        db.Vehicles.Add(new VehicleModel { Id = 1, UserId = 50, LicensePlate = "OLD-1", Make = "Old", Model = "Old", Color = "Old", CreatedAt = DateOnly.FromDateTime(DateTime.Now) });
+        db.SaveChanges();
+
+        var mockHttp = CreateMockHttp(50);
+        
+        // Missing Color
+        var updateReq = new VehicleModel { LicensePlate = "NEW-1", Make = "New", Model = "New", Color = "" };
+        var result = await VehicleHandlers.UpdateVehicle(1, mockHttp.Object, updateReq, db);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminGetOrganizationVehicles_ReturnsNotFound_WhenOrganizationDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var result = await VehicleHandlers.AdminGetOrganizationVehicles(999, db);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminGetOrganizationVehicles_ReturnsEmptyList_WhenNoVehiclesInOrg()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        db.Organizations.Add(new OrganizationModel { Id = 1, Name = "Test Org" });
+        db.SaveChanges();
+
+        var result = await VehicleHandlers.AdminGetOrganizationVehicles(1, db);
+
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(200, statusCodeResult.StatusCode);
+
+        var valueProperty = result.GetType().GetProperty("Value");
+        var value = valueProperty?.GetValue(result);
+        var countProp = value?.GetType().GetProperty("count");
+        Assert.Equal(0, countProp?.GetValue(value));
+    }
 }

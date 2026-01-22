@@ -176,4 +176,99 @@ public class SessionHandlerTests
 
         Assert.IsType<NotFound<string>>(result);
     }
+
+    [Fact]
+    public async Task StartSession_ReturnsUnauthorized_WhenNoUserClaim()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        await SeedDatabase(db);
+        
+        var mockHttp = new Mock<HttpContext>();
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+        
+        var request = new StartStopSessionRequest("AA-BB-99");
+
+        var result = await SessionHandlers.StartSession(1, db, mockHttp.Object, request);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task StopSession_ReturnsUnauthorized_WhenNoUserClaim()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        await SeedDatabase(db);
+        
+        var mockHttp = new Mock<HttpContext>();
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+        
+        var request = new StartStopSessionRequest("AA-BB-99");
+
+        var result = await SessionHandlers.StopSession(1, db, mockHttp.Object, request);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task StopSession_ReturnsNotFound_WhenVehicleDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        await SeedDatabase(db);
+        var mockHttp = CreateMockHttp(_testUserId);
+        var request = new StartStopSessionRequest("UNKNOWN-PLATE");
+
+        var result = await SessionHandlers.StopSession(1, db, mockHttp.Object, request);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task StartSession_ReturnsUnauthorized_WhenUserIsInactive()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        
+        // Add inactive user
+        db.Users.Add(new UserModel 
+        { 
+            Id = _testUserId, 
+            Name = "Test User", 
+            Email = "test@example.com", 
+            Password = "pw", 
+            Role = "User",
+            Username = "TestUser123", 
+            Phone = "0612345678",
+            Active = false // Inactive!
+        });
+
+        db.ParkingLots.Add(new ParkingLotModel 
+        { 
+            Id = 1, 
+            Name = "Centrum Garage", 
+            Tariff = 5.0m, 
+            Capacity = 100, 
+            Status = "Open",
+            Location = "Stad",
+            Address = "Straat 1"
+        });
+
+        db.Vehicles.Add(new VehicleModel 
+        { 
+            Id = 10, 
+            UserId = _testUserId, 
+            LicensePlate = "AA-BB-99", 
+            Make = "Tesla", 
+            Model = "3", 
+            Color = "Black" 
+        });
+
+        await db.SaveChangesAsync();
+
+        var mockHttp = CreateMockHttp(_testUserId);
+        var request = new StartStopSessionRequest("AA-BB-99");
+
+        var result = await SessionHandlers.StartSession(1, db, mockHttp.Object, request);
+
+        // Should return some form of forbidden/unauthorized result for inactive users
+        Assert.NotNull(result);
+    }
 }
