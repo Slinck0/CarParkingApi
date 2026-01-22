@@ -3,17 +3,6 @@
 __MACOSX/
 Thumbs.db
 
-# Exclude coverage reports
-ParkingApi.Tests/coveragereport/
-
-# Exclude build output folders
-/ParkingApi.Tests/bin/
-/ParkingApi.Tests/obj/
-
-ParkingApi.Tests/[Bb]in/
-ParkingApi.Tests/[Oo]bj/
-ParkingApi.Tests/[Tt]est[Rr]esults/
-
 # IDE / Editor
 .vscode/
 .idea/
