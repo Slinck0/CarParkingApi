@@ -15,7 +15,7 @@ namespace ParkingApi.Tests.Handlers;
 public class ReservationHandlerTests
 {
     private readonly Mock<HttpContext> _mockHttp;
-    private readonly int _testUserId = 98;
+    private readonly int _testUserId = 99;
 
     public ReservationHandlerTests()
     {
