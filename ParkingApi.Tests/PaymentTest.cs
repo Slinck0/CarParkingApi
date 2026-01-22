@@ -240,4 +240,204 @@ public class PaymentHandlersTests
 
         Assert.Empty(list);
     }
+
+    [Fact]
+    public async Task AdminCancelUserPayment_ReturnsNotFound_WhenPaymentMissing()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var result = await PaymentHandlers.AdminCancelUserPayment(db, "missing-tx");
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+
+
+    [Fact]
+    public async Task AdminCancelUserPayment_SetsPendingToFailed()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var oldCompletedAt = DateTimeOffset.UtcNow.AddDays(-1);
+
+        db.Payments.Add(new PaymentModel
+        {
+            Transaction = "tx-pending",
+            ReservationId = "res-1",
+            Amount = 10m,
+            TAmount = 10m,
+            TDate = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Pending,
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-2),
+            CompletedAt = oldCompletedAt,
+            Method = "Card",
+            Hash = "h"
+        });
+        db.SaveChanges();
+
+        var result = await PaymentHandlers.AdminCancelUserPayment(db, "tx-pending");
+
+        var ok = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+
+        var updated = await db.Payments.Cast<PaymentModel>().FirstAsync(p => p.Transaction == "tx-pending");
+        Assert.Equal(PaymentStatus.Failed, updated.Status);
+        Assert.True(updated.CompletedAt > oldCompletedAt);
+    }
+
+    [Fact]
+    public async Task AdminCancelUserPayment_SetsCompletedToRefunded()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var oldCompletedAt = DateTimeOffset.UtcNow.AddDays(-1);
+
+        db.Payments.Add(new PaymentModel
+        {
+            Transaction = "tx-completed",
+            ReservationId = "res-2",
+            Amount = 25m,
+            TAmount = 25m,
+            TDate = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Completed,
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-2),
+            CompletedAt = oldCompletedAt,
+            Method = "Ideal",
+            Hash = "h2"
+        });
+        db.SaveChanges();
+
+        var result = await PaymentHandlers.AdminCancelUserPayment(db, "tx-completed");
+
+        var ok = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+
+        var updated = await db.Payments.Cast<PaymentModel>().FirstAsync(p => p.Transaction == "tx-completed");
+        Assert.Equal(PaymentStatus.Refunded, updated.Status);
+        Assert.True(updated.CompletedAt > oldCompletedAt);
+    }
+
+    [Fact]
+    public async Task AdminCancelUserPayment_ReturnsBadRequest_WhenAlreadyFailedOrRefunded()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        db.Payments.Add(new PaymentModel
+        {
+            Transaction = "tx-failed",
+            ReservationId = "res-3",
+            Amount = 5m,
+            TAmount = 5m,
+            TDate = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Failed,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CompletedAt = DateTimeOffset.UtcNow,
+            Method = "Cash",
+            Hash = "h3"
+        });
+        db.SaveChanges();
+
+        var result = await PaymentHandlers.AdminCancelUserPayment(db, "tx-failed");
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminUpdatePayment_ReturnsNotFound_WhenPaymentMissing()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var req = new PaymentHandlers.AdminUpdatePaymentRequest(Amount: 20m, Method: "Ideal", Status: PaymentStatus.Completed);
+        var result = await PaymentHandlers.AdminUpdatePayment(db, "missing", req);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminUpdatePayment_UpdatesAmount_Method_AndStatus()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var oldCompletedAt = DateTimeOffset.UtcNow.AddDays(-3);
+
+        db.Payments.Add(new PaymentModel
+        {
+            Transaction = "tx-update",
+            ReservationId = "res-4",
+            Amount = 10m,
+            TAmount = 10m,
+            TDate = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Pending,
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-4),
+            CompletedAt = oldCompletedAt,
+            Method = "Card",
+            Hash = "h4"
+        });
+        db.SaveChanges();
+
+        var req = new PaymentHandlers.AdminUpdatePaymentRequest(Amount: 99m, Method: "Ideal", Status: PaymentStatus.Completed);
+        var result = await PaymentHandlers.AdminUpdatePayment(db, "tx-update", req);
+
+        var ok = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+
+        var updated = await db.Payments.Cast<PaymentModel>().FirstAsync(p => p.Transaction == "tx-update");
+        Assert.Equal(99m, updated.Amount);
+        Assert.Equal(99m, updated.TAmount);
+        Assert.Equal("Ideal", updated.Method);
+        Assert.Equal(PaymentStatus.Completed, updated.Status);
+        Assert.True(updated.CompletedAt > oldCompletedAt);
+    }
+
+    [Fact]
+    public async Task AdminUpdatePayment_ReturnsBadRequest_WhenAmountInvalid()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        db.Payments.Add(new PaymentModel
+        {
+            Transaction = "tx-badamount",
+            ReservationId = "res-5",
+            Amount = 10m,
+            TAmount = 10m,
+            TDate = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Pending,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CompletedAt = DateTimeOffset.UtcNow,
+            Method = "Card",
+            Hash = "h5"
+        });
+        db.SaveChanges();
+
+        var req = new PaymentHandlers.AdminUpdatePaymentRequest(Amount: 0m, Method: null, Status: null);
+        var result = await PaymentHandlers.AdminUpdatePayment(db, "tx-badamount", req);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task AdminCancelUserPayment_ReturnsBadRequest_WhenAlreadyRefunded()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        db.Payments.Add(new PaymentModel
+        {
+            Transaction = "tx-refunded",
+            ReservationId = "res-r",
+            Amount = 5m,
+            TAmount = 5m,
+            TDate = DateTimeOffset.UtcNow,
+            Status = PaymentStatus.Refunded,
+            CreatedAt = DateTimeOffset.UtcNow,
+            CompletedAt = DateTimeOffset.UtcNow,
+            Method = "Ideal",
+            Hash = "h-ref"
+        });
+        db.SaveChanges();
+
+        var result = await PaymentHandlers.AdminCancelUserPayment(db, "tx-refunded");
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
 }
