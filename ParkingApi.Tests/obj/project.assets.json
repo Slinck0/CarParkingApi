@@ -5196,40 +5196,32 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\otmsc\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "/Users/rensgijzen/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\otmsc\\OneDrive\\Documenten\\GitHub\\CarParkingApi\\ParkingApi.Tests\\ParkingApi.Tests.csproj",
+      "projectUniqueName": "/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/ParkingApi.Tests.csproj",
       "projectName": "ParkingApi.Tests",
-      "projectPath": "C:\\Users\\otmsc\\OneDrive\\Documenten\\GitHub\\CarParkingApi\\ParkingApi.Tests\\ParkingApi.Tests.csproj",
-      "packagesPath": "C:\\Users\\otmsc\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\otmsc\\OneDrive\\Documenten\\GitHub\\CarParkingApi\\ParkingApi.Tests\\obj\\",
+      "projectPath": "/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/ParkingApi.Tests.csproj",
+      "packagesPath": "/Users/rensgijzen/.nuget/packages/",
+      "outputPath": "/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/obj/",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\otmsc\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/Users/rensgijzen/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "C:\\Users\\otmsc\\OneDrive\\Documenten\\GitHub\\CarParkingApi\\V2\\V2.csproj": {
-              "projectPath": "C:\\Users\\otmsc\\OneDrive\\Documenten\\GitHub\\CarParkingApi\\V2\\V2.csproj"
+            "/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/V2/V2.csproj": {
+              "projectPath": "/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/V2/V2.csproj"
             }
           }
         }
@@ -5295,7 +5287,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
