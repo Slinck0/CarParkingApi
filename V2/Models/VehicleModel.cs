@@ -9,6 +9,8 @@ public class VehicleModel
     [JsonIgnore]
 
     public int UserId { get; set; }
+
+    [JsonIgnore]
     public int? OrganizationId { get; set; }
     public string LicensePlate { get; set; } = null!;
     public string Make { get; set; } = null!;
