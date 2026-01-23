@@ -36,6 +36,7 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       - name: Run Tests with Coverage
+        # Zorg dat het pad naar je testproject hier klopt (ParkingApi.Tests)
         run: dotnet test ParkingApi.Tests --collect:"XPlat Code Coverage" --results-directory ./coverage
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
@@ -53,31 +54,30 @@ jobs:
           path: ./coverage-report
 
   integration-test:
-    name: Integration Testing
+    name: Integration Testing (C#)
     runs-on: ubuntu-latest
     needs: build
     env:
-      BASE_URL: "http://localhost:5000"
       ASPNETCORE_ENVIRONMENT: "Development" 
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install Python Dependencies
+
+      # NIEUW: Eerst restoren, anders snapt dotnet-ef je project niet
+      - name: Restore Dependencies
+        run: dotnet restore V2/V2.csproj
+
+      - name: Setup Database
         run: |
-          pip install pytest requests uuid
-      - name: Start API in Background
+          dotnet tool install --global dotnet-ef
+          dotnet ef database update --project V2/V2.csproj
+
+      - name: Run C# Integration Tests
         run: |
-          dotnet run --project V2/V2.csproj --urls "http://localhost:5000" &
-      - name: Wait for API to be ready
-        run: |
-          sleep 15
-      - name: Run Pytest
-        run: |
-          pytest
+          dotnet test ParkingApi.Tests \
+          --filter "FullyQualifiedName~Integration" \
+          --logger "console;verbosity=detailed"

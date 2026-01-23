@@ -116,4 +116,160 @@ public class ProfileHandlerTests
 
         Assert.IsType<Conflict<string>>(result);
     }
+
+    [Fact]
+    public async Task DeleteProfile_ReturnsOk_WhenUserExists()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        db.Users.Add(new UserModel
+        {
+            Id = _testUserId, Username = "ToDelete", Email = "delete@test.nl",
+            Password = "Hash", Name = "DeleteMe", Phone = "0612345678", 
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
+        });
+        db.SaveChanges();
+
+        var result = await ProfileHandlers.DeleteProfile(_mockHttp.Object, db);
+
+        Assert.NotNull(result);
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(200, statusCodeResult.StatusCode);
+
+        var deletedUser = await db.Users.FindAsync(_testUserId);
+        Assert.Null(deletedUser);
+    }
+
+    [Fact]
+    public async Task DeleteProfile_ReturnsNotFound_WhenUserDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        // No user added, so the user does not exist
+
+        var result = await ProfileHandlers.DeleteProfile(_mockHttp.Object, db);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task GetProfile_ReturnsNotFound_WhenUserDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        // No user added
+
+        var result = await ProfileHandlers.GetProfile(_mockHttp.Object, db);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task GetProfile_ReturnsUnauthorized_WhenNoUserClaim()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        
+        var mockHttp = new Moq.Mock<HttpContext>();
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+
+        var result = await ProfileHandlers.GetProfile(mockHttp.Object, db);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ReturnsBadRequest_WhenFieldsAreMissing()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        db.Users.Add(new UserModel
+        {
+            Id = _testUserId, Username = "TestUser", Email = "test@test.nl",
+            Password = "pw", Name = "Test", Phone = "123", BirthYear = 1990, 
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
+        });
+        db.SaveChanges();
+
+        // Test with missing Name
+        var request = new UpdateProfileRequest("", "test@test.nl", "123", 1990);
+        var result = await ProfileHandlers.UpdateProfile(_mockHttp.Object, db, request);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ReturnsBadRequest_WhenEmailInvalid()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        db.Users.Add(new UserModel
+        {
+            Id = _testUserId, Username = "TestUser", Email = "test@test.nl",
+            Password = "pw", Name = "Test", Phone = "123", BirthYear = 1990, 
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
+        });
+        db.SaveChanges();
+
+        // Test with invalid email format
+        var request = new UpdateProfileRequest("ValidName", "invalidemail", "123", 1990);
+        var result = await ProfileHandlers.UpdateProfile(_mockHttp.Object, db, request);
+
+        Assert.IsType<BadRequest<string>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ReturnsNotFound_WhenUserDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        // No user added
+
+        var request = new UpdateProfileRequest("ValidName", "valid@email.com", "123", 1990);
+        var result = await ProfileHandlers.UpdateProfile(_mockHttp.Object, db, request);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateState_TogglesActiveState()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        var targetUserId = 999;
+
+        db.Users.Add(new UserModel
+        {
+            Id = targetUserId, Username = "TargetUser", Email = "target@test.nl",
+            Password = "pw", Name = "Target", Phone = "123",
+            CreatedAt = DateOnly.FromDateTime(DateTime.Now), Active = true
+        });
+        db.SaveChanges();
+
+        var result = await ProfileHandlers.UpdateState(_mockHttp.Object, db, targetUserId);
+
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(200, statusCodeResult.StatusCode);
+
+        var updatedUser = await db.Users.FindAsync(targetUserId);
+        Assert.False(updatedUser!.Active); // Was true, now should be false
+    }
+
+    [Fact]
+    public async Task UpdateState_ReturnsNotFound_WhenUserDoesNotExist()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+
+        var result = await ProfileHandlers.UpdateState(_mockHttp.Object, db, 999);
+
+        Assert.IsType<NotFound<string>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateState_ReturnsUnauthorized_WhenNoUserClaim()
+    {
+        using var db = DbContextHelper.GetInMemoryDbContext();
+        
+        var mockHttp = new Moq.Mock<HttpContext>();
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+
+        var result = await ProfileHandlers.UpdateState(mockHttp.Object, db, 1);
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
 }

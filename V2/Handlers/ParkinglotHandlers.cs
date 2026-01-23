@@ -174,5 +174,35 @@ public static class ParkingLotHandlers
         });
     }
 
+    public static async Task<IResult> GetParkingLotById(int id, AppDbContext db)
+    {
+        var parkingLot = await db.ParkingLots
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (parkingLot is null)
+        {
+            return Results.NotFound(new { message = "Parking lot not found." });
+        }
+
+        return Results.Ok(parkingLot);
+    }
+
+
+    public static async Task<IResult> DeleteParkingLot(int id, AppDbContext db)
+    {
+        var parkingLot = await db.ParkingLots.FindAsync(id);
+
+        if (parkingLot is null)
+        {
+            return Results.NotFound(new { message = "Parking lot not found." });
+        }
+
+        db.ParkingLots.Remove(parkingLot);
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new { message = $"Parking lot '{parkingLot.Name}' (ID: {id}) has been deleted." });
+    }
+
 
 }

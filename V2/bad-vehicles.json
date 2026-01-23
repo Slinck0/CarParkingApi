@@ -28,15 +28,5 @@
     "color": "White",
     "year": 2024,
     "created_at": "2024-09-04"
-  },
-  {
-    "id": null,
-    "user_id": null,
-    "license_plate": null,
-    "make": null,
-    "model": null,
-    "color": null,
-    "year": null,
-    "created_at": null
   }
 ]

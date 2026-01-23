@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using V2.Data;
 
@@ -10,9 +11,11 @@ using V2.Data;
 namespace V2.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260123094450_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
@@ -155,7 +158,7 @@ namespace V2.Migrations
 
             modelBuilder.Entity("V2.Models.ParkingSessionModel", b =>
                 {
-                    b.Property<int>("ParkingLotId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -165,12 +168,12 @@ namespace V2.Migrations
                     b.Property<DateTime?>("EndTime")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Id")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("LicensePlate")
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("ParkingLotId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("TEXT");
@@ -185,7 +188,7 @@ namespace V2.Migrations
                     b.Property<int>("VehicleId")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("ParkingLotId");
+                    b.HasKey("Id");
 
                     b.HasIndex("EndTime");
 

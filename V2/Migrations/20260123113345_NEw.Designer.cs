@@ -11,8 +11,8 @@ using V2.Data;
 namespace V2.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260107104644_AddOrginaztions")]
-    partial class AddOrginaztions
+    [Migration("20260123113345_NEw")]
+    partial class NEw
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -20,42 +20,29 @@ namespace V2.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
 
-            modelBuilder.Entity("ParkingSessionModel", b =>
+            modelBuilder.Entity("V2.Models.DiscountModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal?>("Cost")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<DateTime?>("EndTime")
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("LicensePlate")
-                        .HasMaxLength(32)
+                    b.Property<decimal>("Percentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTimeOffset>("ValidUntil")
                         .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EndTime");
+                    b.HasIndex("Code")
+                        .IsUnique();
 
-                    b.HasIndex("StartTime");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("VehicleId");
-
-                    b.ToTable("parking_sessions", (string)null);
+                    b.ToTable("discount", (string)null);
                 });
 
             modelBuilder.Entity("V2.Models.OrganizationModel", b =>
@@ -145,6 +132,9 @@ namespace V2.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("OrganizationId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Reserved")
                         .HasColumnType("INTEGER");
 
@@ -161,7 +151,54 @@ namespace V2.Migrations
 
                     b.HasIndex("Location");
 
+                    b.HasIndex("OrganizationId");
+
                     b.ToTable("parking_lot", (string)null);
+                });
+
+            modelBuilder.Entity("V2.Models.ParkingSessionModel", b =>
+                {
+                    b.Property<int>("ParkingLotId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LicensePlate")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ParkingLotId");
+
+                    b.HasIndex("EndTime");
+
+                    b.HasIndex("StartTime");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("parking_sessions", (string)null);
                 });
 
             modelBuilder.Entity("V2.Models.PaymentModel", b =>
@@ -288,6 +325,13 @@ namespace V2.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("OrganizationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("OrganizationRole")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -307,6 +351,8 @@ namespace V2.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Email");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("user", (string)null);
                 });
@@ -340,6 +386,9 @@ namespace V2.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("OrganizationId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
 
@@ -353,9 +402,35 @@ namespace V2.Migrations
                     b.HasIndex("LicensePlate")
                         .IsUnique();
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("vehicle", (string)null);
+                });
+
+            modelBuilder.Entity("V2.Models.ParkingLotModel", b =>
+                {
+                    b.HasOne("V2.Models.OrganizationModel", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("V2.Models.UserModel", b =>
+                {
+                    b.HasOne("V2.Models.OrganizationModel", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("V2.Models.VehicleModel", b =>
+                {
+                    b.HasOne("V2.Models.OrganizationModel", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }
