@@ -67,14 +67,15 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      # Stap 1: Zorg dat de database klaarstaat (voor het geval je tests een echt .db bestand gebruiken)
+      # NIEUW: Eerst restoren, anders snapt dotnet-ef je project niet
+      - name: Restore Dependencies
+        run: dotnet restore V2/V2.csproj
+
       - name: Setup Database
         run: |
           dotnet tool install --global dotnet-ef
           dotnet ef database update --project V2/V2.csproj
 
-      # Stap 2: Draai de tests
-      # We gebruiken --filter om ALLEEN de tests in de namespace 'Integration' te draaien
       - name: Run C# Integration Tests
         run: |
           dotnet test ParkingApi.Tests \
