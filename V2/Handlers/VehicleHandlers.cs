@@ -1,19 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
-
+using System.Text.RegularExpressions;
 
 public static class VehicleHandlers
 {
+   
     public static async Task<IResult> CreateVehicle(HttpContext http, VehicleModel vehicle, AppDbContext db)
     {
         var userId = ClaimHelper.GetUserId(http);
         if (userId == 0) return Results.Unauthorized();
-
-        var nextID = db.Vehicles.Any() ? await db.Vehicles.MaxAsync(v => v.Id) + 1 : 1;
-        vehicle.Id = nextID;
-        vehicle.UserId = userId;
-        vehicle.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
 
         if (string.IsNullOrWhiteSpace(vehicle.LicensePlate))
             return Results.BadRequest("License plate is required.");
@@ -24,8 +20,27 @@ public static class VehicleHandlers
         if (string.IsNullOrWhiteSpace(vehicle.Make))
             return Results.BadRequest("Make is required.");
 
+        var currentYear = DateTime.Now.Year;
+        if (vehicle.Year < 1900 || vehicle.Year > currentYear + 1)
+        {
+            return Results.BadRequest($"Year must be between 1900 and {currentYear + 1}.");
+        }
+
+        vehicle.LicensePlate = vehicle.LicensePlate.Trim().ToUpper();
+        var licensePattern = @"^[A-Z0-9]{2}-[A-Z0-9]{2}-[A-Z0-9]{2}$";
+
+        if (!Regex.IsMatch(vehicle.LicensePlate, licensePattern))
+        {
+            return Results.BadRequest("Invalid license plate format. Expected format: XX-XX-XX");
+        }
+
         if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
             return Results.Conflict("A vehicle with this license plate already exists.");
+
+        var nextID = db.Vehicles.Any() ? await db.Vehicles.MaxAsync(v => v.Id) + 1 : 1;
+        vehicle.Id = nextID;
+        vehicle.UserId = userId;
+        vehicle.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
 
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync();
