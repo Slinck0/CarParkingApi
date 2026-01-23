@@ -2,6 +2,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using V2.Data;
+using System.Linq;
+
 
 namespace ParkingApi.Tests.Integration;
 
@@ -15,12 +20,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     public CustomWebApplicationFactory()
     {
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
         _dbName = $"TestDb_{Guid.NewGuid()}";
     }
 
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // Add test configuration that tells the app to use InMemory database
         builder.ConfigureAppConfiguration((context, configBuilder) =>
         {
             configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
@@ -30,6 +36,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             });
         });
     }
+
+
 
     protected override IHost CreateHost(IHostBuilder builder)
     {

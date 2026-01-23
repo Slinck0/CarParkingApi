@@ -37,6 +37,15 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // DateOnly converter for LibSql
+        mb.Entity<UserModel>()
+            .Property(x => x.CreatedAt)
+            .HasConversion(
+                d => d.ToString("yyyy-MM-dd"),
+                s => DateOnly.Parse(s)
+            );
+
+
         mb.Entity<ReservationModel>(e =>
         {
             e.ToTable("reservation");

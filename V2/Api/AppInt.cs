@@ -17,8 +17,9 @@ namespace V2.Api
             var connectionString = config.GetConnectionString("DefaultConnection");
 
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(connectionString)
+                .UseLibSql(connectionString)
                 .Options;
+
 
             using var db = new AppDbContext(options);
             await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
