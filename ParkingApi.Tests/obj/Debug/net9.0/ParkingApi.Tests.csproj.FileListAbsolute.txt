@@ -3,7 +3,6 @@
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/V2.deps.json
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/V2.runtimeconfig.json
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/appsettings.json
-/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/bad-reservations.json
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/bad-users.json
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/bad-vehicles.json
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/global.json
@@ -463,3 +462,8 @@
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/Microsoft.AspNetCore.Mvc.Testing.dll
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/Microsoft.AspNetCore.TestHost.dll
 /Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/obj/Debug/net9.0/MvcTestingAppManifest.json
+/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/Data_json/parking-lots.json
+/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/Data_json/payments.json
+/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/Data_json/reservations.json
+/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/Data_json/users.json
+/Users/rensgijzen/Desktop/Parking-API/CarParkingApi/ParkingApi.Tests/bin/Debug/net9.0/Data_json/vehicles.json

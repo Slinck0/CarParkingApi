@@ -9,10 +9,6 @@ using Xunit;
 
 namespace ParkingApi.Tests.Integration;
 
-/// <summary>
-/// Integration tests for all API endpoints.
-/// Uses WebApplicationFactory to spin up the actual API and make real HTTP requests.
-/// </summary>
 public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly CustomWebApplicationFactory _factory;
@@ -56,7 +52,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 
     private async Task<string> CreateAdminAndGetTokenAsync()
     {
-        // Create admin directly in database
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
@@ -76,7 +71,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         db.Users.Add(adminUser);
         await db.SaveChangesAsync();
 
-        // Login
         var loginRequest = new { Username = adminUsername, Password = "AdminPass123" };
         var loginResponse = await _client.PostAsJsonAsync("/login", loginRequest);
         
@@ -100,7 +94,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task Health_ReturnsOk_WithMessage()
     {
         var response = await _client.GetAsync("/Health");
-
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("Parking API is running", content);
@@ -124,7 +117,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         };
 
         var response = await _client.PostAsJsonAsync("/register", request);
-
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
@@ -142,7 +134,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         };
 
         var response = await _client.PostAsJsonAsync("/register", request);
-
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -151,7 +142,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var username = $"dupuser_{Guid.NewGuid():N}"[..20];
         
-        // First registration
         var request1 = new
         {
             Username = username,
@@ -163,7 +153,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         };
         await _client.PostAsJsonAsync("/register", request1);
 
-        // Second registration with same username
         var request2 = new
         {
             Username = username,
@@ -174,7 +163,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
             BirthYear = 1990
         };
         var response = await _client.PostAsJsonAsync("/register", request2);
-
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
@@ -188,7 +176,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         var username = $"loginuser_{Guid.NewGuid():N}"[..20];
         var password = "LoginPass123";
         
-        // Register first
         await _client.PostAsJsonAsync("/register", new
         {
             Username = username,
@@ -199,7 +186,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
             BirthYear = 1990
         });
 
-        // Login
         var response = await _client.PostAsJsonAsync("/login", new { Username = username, Password = password });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -223,7 +209,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         });
 
         var response = await _client.PostAsJsonAsync("/login", new { Username = username, Password = "WrongPass123" });
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -231,7 +216,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task Login_ReturnsBadRequest_WhenFieldsAreMissing()
     {
         var response = await _client.PostAsJsonAsync("/login", new { Username = "", Password = "" });
-
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -243,7 +227,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task GetProfile_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var response = await _client.GetAsync("/profile");
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -252,9 +235,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var response = await authClient.GetAsync("/profile");
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -273,7 +254,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         };
 
         var response = await authClient.PutAsJsonAsync("/profile", updateRequest);
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -282,9 +262,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var response = await authClient.DeleteAsync("/profile");
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -298,16 +276,22 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
 
+        // FIX: Gebruik een Random/Uniek kenteken om 409 Conflict te voorkomen
+        var random = new Random();
+        var r1 = (char)random.Next('A', 'Z' + 1);
+        var r2 = (char)random.Next('A', 'Z' + 1);
+        var uniquePlate = $"{r1}{r2}-{random.Next(10, 99)}-{r1}{r2}";
+
         var vehicleRequest = new
         {
-            LicensePlate = $"AA-{Guid.NewGuid():N}"[..10],
+            LicensePlate = uniquePlate,
             Make = "Tesla",
             Model = "Model 3",
-            Color = "Black"
+            Color = "Black",
+            Year = 2023 
         };
 
         var response = await authClient.PostAsJsonAsync("/vehicles", vehicleRequest);
-
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
@@ -316,9 +300,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var response = await authClient.GetAsync("/vehicles");
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -327,14 +309,14 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var vehicleRequest = new
         {
-            LicensePlate = "XX-999-XX",
+            LicensePlate = "XX-99-XX",
             Make = "Ford",
             Model = "Focus",
-            Color = "Blue"
+            Color = "Blue",
+            Year = 2022
         };
 
         var response = await _client.PostAsJsonAsync("/vehicles", vehicleRequest);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -354,7 +336,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         };
 
         var response = await _client.PostAsJsonAsync("/reservations", reservationRequest);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -363,9 +344,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var response = await authClient.GetAsync("/reservations/me");
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -377,9 +356,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task StartSession_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var sessionRequest = new { LicensePlate = "AA-BB-99" };
-
         var response = await _client.PostAsJsonAsync("/parkinglots/1/sessions/start", sessionRequest);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -387,9 +364,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task StopSession_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var sessionRequest = new { LicensePlate = "AA-BB-99" };
-
         var response = await _client.PostAsJsonAsync("/parkinglots/1/sessions/stop", sessionRequest);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -401,9 +376,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task CreatePayment_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var paymentRequest = new { ReservationId = "res-123", Method = "CreditCard" };
-
         var response = await _client.PostAsJsonAsync("/payments/", paymentRequest);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -411,7 +384,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task GetUserPayments_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var response = await _client.GetAsync("/payments/");
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -420,9 +392,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var response = await authClient.GetAsync("/payments/");
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -431,23 +401,19 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var response = await authClient.GetAsync("/payments/pending");
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     #endregion
 
-    #region Admin Endpoints - Organization
+    #region Admin Endpoints
 
     [Fact]
     public async Task CreateOrganization_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var request = new { Name = "New Organization", Email = "org@test.nl" };
-
         var response = await _client.PostAsJsonAsync("/admin/organizations", request);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -456,11 +422,8 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var request = new { Name = "New Organization", Email = "org@test.nl" };
-
         var response = await authClient.PostAsJsonAsync("/admin/organizations", request);
-
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
@@ -469,21 +432,14 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await CreateAdminAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var request = new
         {
             Name = $"Org_{Guid.NewGuid():N}"[..20],
             Email = $"org_{Guid.NewGuid():N}@test.nl"
         };
-
         var response = await authClient.PostAsJsonAsync("/admin/organizations", request);
-
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
-
-    #endregion
-
-    #region Admin Endpoints - Parking Lots
 
     [Fact]
     public async Task CreateParkingLot_ReturnsUnauthorized_WhenNotAuthenticated()
@@ -501,9 +457,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
             Lng = 4.47917,
             Status = "Open"
         };
-
         var response = await _client.PostAsJsonAsync("/parking-lots", parkingLotRequest);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -512,7 +466,6 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var parkingLotRequest = new
         {
             Name = "New Garage",
@@ -526,21 +479,14 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
             Lng = 4.47917,
             Status = "Open"
         };
-
         var response = await authClient.PostAsJsonAsync("/parking-lots", parkingLotRequest);
-
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
-
-    #endregion
-
-    #region Admin Endpoints - User Toggle Active
 
     [Fact]
     public async Task ToggleUserActive_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var response = await _client.PutAsync("/admin/users/1/toggle-active", null);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -549,21 +495,14 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         var token = await RegisterAndGetTokenAsync();
         var authClient = CreateAuthenticatedClient(token);
-
         var response = await authClient.PutAsync("/admin/users/1/toggle-active", null);
-
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
-
-    #endregion
-
-    #region Admin Endpoints - Payments
 
     [Fact]
     public async Task AdminCancelPayment_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var response = await _client.PutAsync("/admin/payments/transaction123/cancel", null);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -571,9 +510,7 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     public async Task AdminUpdatePayment_ReturnsUnauthorized_WhenNotAuthenticated()
     {
         var request = new { Amount = 50.0m, Method = "Ideal" };
-
         var response = await _client.PutAsJsonAsync("/admin/payments/transaction123", request);
-
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 

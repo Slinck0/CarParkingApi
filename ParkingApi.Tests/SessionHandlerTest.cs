@@ -38,11 +38,8 @@ public class SessionHandlerTests
             Email = "test@example.com", 
             Password = "pw", 
             Role = "User",
-            
-          
             Username = "TestUser123", 
             Phone = "0612345678",
-
             Active = true 
         });
 
@@ -64,7 +61,8 @@ public class SessionHandlerTests
             LicensePlate = "AA-BB-99", 
             Make = "Tesla", 
             Model = "3", 
-            Color = "Black" 
+            Color = "Black",
+            Year = 2022
         });
 
         await db.SaveChangesAsync();
@@ -109,7 +107,7 @@ public class SessionHandlerTests
         using var db = DbContextHelper.GetInMemoryDbContext();
         await SeedDatabase(db);
         var mockHttp = CreateMockHttp(_testUserId);
-        var request = new StartStopSessionRequest("ONBEKEND-12");
+        var request = new StartStopSessionRequest("XX-YY-00");
         
         var result = await SessionHandlers.StartSession(1, db, mockHttp.Object, request);
 
@@ -120,15 +118,50 @@ public class SessionHandlerTests
     public async Task StopSession_ReturnsOk_WhenActiveSessionExists()
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
-        await SeedDatabase(db);
-        var mockHttp = CreateMockHttp(_testUserId);
+        
+        var userId = 555;
+        var vehicleId = 555;
+        var sessionId = 888;
+        var plate = "ZZ-55-AA";
 
+        db.Users.Add(new UserModel 
+        { 
+            Id = userId, 
+            Name = "SessionUser", 
+            Email = "s@test.com", 
+            Active = true,
+            Username = "SessionUserTest", 
+            Password = "DummyPassword",
+            Phone = "0612345678"
+        });
+
+        db.ParkingLots.Add(new ParkingLotModel 
+        { 
+            Id = 1, 
+            Name = "Lot 1", 
+            Tariff = 2.0m, 
+            Status = "Open",
+            Location = "Rotterdam",
+            Address = "Coolsingel 1"
+        });
+        
+        db.Vehicles.Add(new VehicleModel 
+        { 
+            Id = vehicleId, 
+            UserId = userId, 
+            LicensePlate = plate, 
+            Make = "T", 
+            Model = "T", 
+            Color = "B", 
+            Year = 2022 
+        });
+        
         db.ParkingSessions.Add(new ParkingSessionModel
         {
-            Id = 500,
-            UserId = _testUserId,
-            VehicleId = 10,
-            LicensePlate = "AA-BB-99",
+            Id = sessionId,
+            UserId = userId,
+            VehicleId = vehicleId,
+            LicensePlate = plate,
             ParkingLotId = 1,
             StartTime = DateTime.UtcNow.AddHours(-2), 
             Status = "active",
@@ -136,18 +169,27 @@ public class SessionHandlerTests
         });
         await db.SaveChangesAsync();
 
-        var request = new StartStopSessionRequest("AA-BB-99");
+        var mockHttp = CreateMockHttp(userId);
+        var request = new StartStopSessionRequest(plate);
 
+        // Act
         var result = await SessionHandlers.StopSession(1, db, mockHttp.Object, request);
 
-        var statusCodeResult = result as IStatusCodeHttpResult;
-        Assert.NotNull(statusCodeResult);
+        // Assert
+        var statusCodeResult = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
         Assert.Equal(200, statusCodeResult.StatusCode);
 
-        var session = await db.ParkingSessions.FindAsync(500);
+        // FIX: Clear ChangeTracker om te voorkomen dat we "oude" data uit de cache lezen
+        db.ChangeTracker.Clear();
+
+        // Haal de sessie opnieuw op uit de "database"
+        var session = await db.ParkingSessions.FirstOrDefaultAsync(s => s.Id == sessionId);
+        
         Assert.NotNull(session);
         Assert.Equal("completed", session.Status);
-        Assert.NotNull(session.EndTime);
+        
+        // Nu zou EndTime ingevuld moeten zijn
+        Assert.NotNull(session.EndTime); 
         Assert.True(session.Cost > 0);
     }
 
@@ -184,7 +226,7 @@ public class SessionHandlerTests
         await SeedDatabase(db);
         
         var mockHttp = new Mock<HttpContext>();
-        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); 
         
         var request = new StartStopSessionRequest("AA-BB-99");
 
@@ -200,7 +242,7 @@ public class SessionHandlerTests
         await SeedDatabase(db);
         
         var mockHttp = new Mock<HttpContext>();
-        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); // No claims
+        mockHttp.Setup(c => c.User).Returns(new ClaimsPrincipal(new ClaimsIdentity())); 
         
         var request = new StartStopSessionRequest("AA-BB-99");
 
@@ -215,7 +257,7 @@ public class SessionHandlerTests
         using var db = DbContextHelper.GetInMemoryDbContext();
         await SeedDatabase(db);
         var mockHttp = CreateMockHttp(_testUserId);
-        var request = new StartStopSessionRequest("UNKNOWN-PLATE");
+        var request = new StartStopSessionRequest("ZZ-99-ZZ");
 
         var result = await SessionHandlers.StopSession(1, db, mockHttp.Object, request);
 
@@ -227,7 +269,6 @@ public class SessionHandlerTests
     {
         using var db = DbContextHelper.GetInMemoryDbContext();
         
-        // Add inactive user
         db.Users.Add(new UserModel 
         { 
             Id = _testUserId, 
@@ -237,7 +278,7 @@ public class SessionHandlerTests
             Role = "User",
             Username = "TestUser123", 
             Phone = "0612345678",
-            Active = false // Inactive!
+            Active = false 
         });
 
         db.ParkingLots.Add(new ParkingLotModel 
@@ -258,7 +299,8 @@ public class SessionHandlerTests
             LicensePlate = "AA-BB-99", 
             Make = "Tesla", 
             Model = "3", 
-            Color = "Black" 
+            Color = "Black",
+            Year = 2022
         });
 
         await db.SaveChangesAsync();
@@ -268,7 +310,6 @@ public class SessionHandlerTests
 
         var result = await SessionHandlers.StartSession(1, db, mockHttp.Object, request);
 
-        // Should return some form of forbidden/unauthorized result for inactive users
         Assert.NotNull(result);
     }
 }
