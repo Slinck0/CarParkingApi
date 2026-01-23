@@ -52,6 +52,10 @@
               "target": "Package",
               "version": "[2.3.0, )"
             },
+            "Microsoft.AspNetCore.Mvc.Testing": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
             "Microsoft.EntityFrameworkCore.InMemory": {
               "target": "Package",
               "version": "[9.0.0, )"
@@ -157,6 +161,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[9.0.10, )"
+            },
+            "Microsoft.EntityFrameworkCore.InMemory": {
+              "target": "Package",
+              "version": "[9.0.0, )"
             },
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",

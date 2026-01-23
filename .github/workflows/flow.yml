@@ -36,6 +36,7 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       - name: Run Tests with Coverage
+        # Zorg dat het pad naar je testproject hier klopt (ParkingApi.Tests)
         run: dotnet test ParkingApi.Tests --collect:"XPlat Code Coverage" --results-directory ./coverage
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
@@ -61,23 +62,33 @@ jobs:
       ASPNETCORE_ENVIRONMENT: "Development" 
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+          
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          
       - name: Install Python Dependencies
         run: |
           pip install pytest requests uuid
-      - name: Start API in Background
+
+      
+      - name: Start API and Run Tests
         run: |
+          echo "Starting API in background..."
+          
           dotnet run --project V2/V2.csproj --urls "http://localhost:5000" &
-      - name: Wait for API to be ready
-        run: |
+          
+          echo "Waiting for API to launch..."
           sleep 15
-      - name: Run Pytest
-        run: |
+          
+          # Optioneel: Check even of de API er echt is (voor debugging in je logs)
+          curl -I http://localhost:5000/swagger/index.html || echo "Warning: Swagger not reachable yet"
+          
+          echo "Running Pytest..."
           pytest
