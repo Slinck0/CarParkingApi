@@ -54,11 +54,10 @@ jobs:
           path: ./coverage-report
 
   integration-test:
-    name: Integration Testing
+    name: Integration Testing (C#)
     runs-on: ubuntu-latest
     needs: build
     env:
-      BASE_URL: "http://localhost:5000"
       ASPNETCORE_ENVIRONMENT: "Development" 
     steps:
       - uses: actions/checkout@v4
@@ -67,35 +66,17 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-          
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          
-      - name: Install Python Dependencies
-        run: |
-          pip install pytest requests uuid
 
-      # NIEUWE STAP: Installeer EF Core tools en maak de database aan
+      # Stap 1: Zorg dat de database klaarstaat (voor het geval je tests een echt .db bestand gebruiken)
       - name: Setup Database
         run: |
           dotnet tool install --global dotnet-ef
-          # Pas op: zorg dat het pad naar je .csproj klopt. Hier ga ik uit van V2/V2.csproj
           dotnet ef database update --project V2/V2.csproj
 
-      - name: Start API and Run Tests
+      # Stap 2: Draai de tests
+      # We gebruiken --filter om ALLEEN de tests in de namespace 'Integration' te draaien
+      - name: Run C# Integration Tests
         run: |
-          echo "Starting API in background..."
-          # We voegen '> api.log 2>&1' toe. Dit schrijft alle output (en errors) naar een bestand.
-          # We gebruiken 0.0.0.0 om zeker te zijn dat hij luistert op alle netwerkinterfaces.
-          dotnet run --project V2/V2.csproj --urls "http://0.0.0.0:5000" > api.log 2>&1 &
-          
-          echo "Waiting for API to launch..."
-          sleep 15
-          
-          # Check of de API er is. Zo niet: print de inhoud van api.log zodat we de fout zien!
-          curl -I http://localhost:5000/swagger/index.html || (echo "API STARTUP FAILED! Logs:" && cat api.log && exit 1)
-          
-          echo "Running Pytest..."
-          pytest
+          dotnet test ParkingApi.Tests \
+          --filter "FullyQualifiedName~Integration" \
+          --logger "console;verbosity=detailed"
