@@ -77,18 +77,25 @@ jobs:
         run: |
           pip install pytest requests uuid
 
-      
+      # NIEUWE STAP: Installeer EF Core tools en maak de database aan
+      - name: Setup Database
+        run: |
+          dotnet tool install --global dotnet-ef
+          # Pas op: zorg dat het pad naar je .csproj klopt. Hier ga ik uit van V2/V2.csproj
+          dotnet ef database update --project V2/V2.csproj
+
       - name: Start API and Run Tests
         run: |
           echo "Starting API in background..."
-          
-          dotnet run --project V2/V2.csproj --urls "http://localhost:5000" &
+          # We voegen '> api.log 2>&1' toe. Dit schrijft alle output (en errors) naar een bestand.
+          # We gebruiken 0.0.0.0 om zeker te zijn dat hij luistert op alle netwerkinterfaces.
+          dotnet run --project V2/V2.csproj --urls "http://0.0.0.0:5000" > api.log 2>&1 &
           
           echo "Waiting for API to launch..."
           sleep 15
           
-          # Optioneel: Check even of de API er echt is (voor debugging in je logs)
-          curl -I http://localhost:5000/swagger/index.html || echo "Warning: Swagger not reachable yet"
+          # Check of de API er is. Zo niet: print de inhoud van api.log zodat we de fout zien!
+          curl -I http://localhost:5000/swagger/index.html || (echo "API STARTUP FAILED! Logs:" && cat api.log && exit 1)
           
           echo "Running Pytest..."
           pytest
