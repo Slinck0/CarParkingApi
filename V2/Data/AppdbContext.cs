@@ -106,6 +106,7 @@ public class AppDbContext : DbContext
         {
             e.ToTable("parking_sessions");
             e.HasKey(x => x.Id);
+            e.HasKey(x => x.ParkingLotId);
             e.Property(x => x.UserId).IsRequired();
             e.Property(x => x.VehicleId).IsRequired();
             e.Property(x => x.LicensePlate).HasMaxLength(32);
@@ -118,6 +119,16 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.VehicleId);
             e.HasIndex(x => x.StartTime);
             e.HasIndex(x => x.EndTime);
+        });
+        
+         mb.Entity<DiscountModel>(e =>
+        {
+            e.ToTable("discount");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Percentage).HasColumnType("decimal(5,2)").IsRequired();
+            e.Property(x => x.ValidUntil).IsRequired();
+            e.HasIndex(x => x.Code).IsUnique();
         });
 
         mb.Entity<OrganizationModel>(e =>

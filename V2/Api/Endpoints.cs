@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
 using V2.Services;
-
+using V2.Handlers;
 namespace V2.Endpoints;
 
 public static class Endpoints
@@ -72,6 +72,12 @@ public static class Endpoints
       // ----------------------------------------------------
       app.MapPost("/parking-lots", ParkingLotHandlers.CreateParkingLot)
          .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+      app.MapGet("/parking-lots/{id}", ParkingLotHandlers.GetParkingLotById)
+         .WithTags("ParkingLots");
+      app.MapDelete("/parking-lots/{id}", ParkingLotHandlers.DeleteParkingLot)
+         .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+      app.MapPut("/parking-lots/{id}/status", ParkingLotHandlers.UpdateParkingLot)
+         .RequireAuthorization("ADMIN").WithTags("ParkingLots");
 
       // ----------------------------------------------------
       // Payment Endpoints
@@ -107,5 +113,26 @@ public static class Endpoints
       adminGroup.MapPut("/payments/{transaction}", PaymentHandlers.AdminUpdatePayment);
 
       adminGroup.MapPut("/users/{id}/toggle-active", ProfileHandlers.UpdateState);
+
+      var billingGroup = app.MapGroup("/billing").RequireAuthorization().WithTags("Billing");
+
+      billingGroup.MapGet("", BillingHandlers.GetUpcomingPayments)
+         .WithName("GetUpcomingPayments")
+         .WithDescription("Get upcoming payments for the authenticated user");
+
+      billingGroup.MapGet("/history", BillingHandlers.GetBillingHistory)
+         .WithName("GetBillingHistory")
+         .WithDescription("Get billing history for the authenticated user");
+
+      app.MapPost("/discounts", DiscountHandler.PostDiscount)
+         .RequireAuthorization("ADMIN")
+         .WithTags("Discounts");
+      app.MapGet("/discounts/{code}", DiscountHandler.GetDiscounts)
+      .RequireAuthorization("ADMIN")
+         .WithTags("Discounts");
+
+
+      
+
    }
 }
