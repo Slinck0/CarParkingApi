@@ -37,8 +37,7 @@ public static class VehicleHandlers
         if (await db.Vehicles.AnyAsync(v => v.LicensePlate == vehicle.LicensePlate))
             return Results.Conflict("A vehicle with this license plate already exists.");
 
-        var nextID = db.Vehicles.Any() ? await db.Vehicles.MaxAsync(v => v.Id) + 1 : 1;
-        vehicle.Id = nextID;
+        // vehicle.Id is handled by DB auto-increment
         vehicle.UserId = userId;
         vehicle.CreatedAt = DateOnly.FromDateTime(DateTime.Now);
 

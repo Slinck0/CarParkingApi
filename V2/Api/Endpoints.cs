@@ -42,6 +42,7 @@ public static class Endpoints
 
       reservationGroup.MapPost("", ReservationHandlers.CreateReservation);
       reservationGroup.MapGet("/me", ReservationHandlers.GetMyReservations);
+      reservationGroup.MapGet("/{id}", ReservationHandlers.GetReservationById);
       reservationGroup.MapDelete("/{id}", ReservationHandlers.CancelReservation);
       reservationGroup.MapPut("/{id}", ReservationHandlers.UpdateReservation);
 
@@ -58,7 +59,7 @@ public static class Endpoints
       app.MapPut("/vehicles/{id}", VehicleHandlers.UpdateVehicle)
          .RequireAuthorization().WithTags("Vehicles");
 
-      app.MapDelete("vehicles/{id}", VehicleHandlers.DeleteVehicle)
+      app.MapDelete("/vehicles/{id}", VehicleHandlers.DeleteVehicle)
          .RequireAuthorization().WithTags("Vehicles");
 
       // ----------------------------------------------------
@@ -66,6 +67,7 @@ public static class Endpoints
       // ----------------------------------------------------
       sessionGroup.MapPost("/start", SessionHandlers.StartSession);
       sessionGroup.MapPost("/stop", SessionHandlers.StopSession);
+      sessionGroup.MapGet("/active/{licensePlate}", SessionHandlers.GetActiveSession);
 
       // ----------------------------------------------------
       // Parking Lot Endpoints
@@ -124,12 +126,24 @@ public static class Endpoints
          .WithName("GetBillingHistory")
          .WithDescription("Get billing history for the authenticated user");
 
-      app.MapPost("/discounts", DiscountHandler.PostDiscount)
-         .RequireAuthorization("ADMIN")
-         .WithTags("Discounts");
-      app.MapGet("/discounts/{code}", DiscountHandler.GetDiscounts)
-      .RequireAuthorization("ADMIN")
-         .WithTags("Discounts");
+      // ----------------------------------------------------
+      // ADMIN DISCOUNT MANAGEMENT ENDPOINTS
+      // ----------------------------------------------------
+      var adminDiscounts = app.MapGroup("/admin/discounts")
+          .RequireAuthorization("ADMIN")
+          .WithTags("Admin - Discounts");
+
+      adminDiscounts.MapPost("", DiscountHandler.CreateDiscount);
+      adminDiscounts.MapGet("", DiscountHandler.GetAllDiscounts);
+      adminDiscounts.MapGet("/{code}", DiscountHandler.GetDiscountByCode);
+      adminDiscounts.MapPut("/{id:int}", DiscountHandler.UpdateDiscount);
+      adminDiscounts.MapDelete("/{id:int}", DiscountHandler.DeactivateDiscount);
+      adminDiscounts.MapGet("/{id:int}/stats", DiscountHandler.GetDiscountStatistics);
+
+      // USER DISCOUNT VALIDATION ENDPOINT
+      app.MapGet("/discounts/validate/{code}", DiscountHandler.ValidateDiscountForUser)
+          .RequireAuthorization()
+          .WithTags("Discounts");
 
 
       

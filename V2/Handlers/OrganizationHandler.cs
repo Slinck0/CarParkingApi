@@ -32,7 +32,7 @@ public static class OrganizationHandlers
         return Results.Created($"/admin/organizations/{org.Id}", new
         {
             message = "Organization created successfully.",
-            organizationId = org.Id,
+            id = org.Id,
             org.Name,
             org.Email,
             org.Phone,
@@ -102,7 +102,7 @@ public static class OrganizationHandlers
         return Results.Ok(new
         {
             message = "Organization updated successfully.",
-            organizationId = org.Id,
+            id = org.Id,
             org.Name,
             org.Email,
             org.Phone,

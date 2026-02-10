@@ -32,7 +32,8 @@ public record ReservationRequest(
     string LicensePlate,
     DateTime? StartDate,
     DateTime? EndDate,
-    int ParkingLot
+    int ParkingLot,
+    string? DiscountCode
 );
 
 public record UpdateProfileRequest(

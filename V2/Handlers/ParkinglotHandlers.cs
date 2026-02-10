@@ -33,7 +33,7 @@ public static class ParkingLotHandlers
         return Results.Created($"/parking-lots/{parkingLot.Id}", new
         {
             message = "Parking lot created successfully.",
-            parkingLotId = parkingLot.Id,
+            id = parkingLot.Id,
             parkingLotName = parkingLot.Name,
             parkingLotAddress = parkingLot.Address
         });
@@ -78,42 +78,58 @@ public static class ParkingLotHandlers
         {
             message = "Parking lot created for organization.",
             organizationId = orgId,
-            parkingLotId = parkingLot.Id,
+            id = parkingLot.Id,
             parkingLotName = parkingLot.Name
         });
     }
 
     public static async Task<IResult> UpdateParkingLot(int id, ParkingLotCreate req, AppDbContext db)
     {
-        if (string.IsNullOrWhiteSpace(req.Name) || req.Capacity <= 0 ||
-            string.IsNullOrWhiteSpace(req.Location) || string.IsNullOrWhiteSpace(req.Address) ||
-            req.Tariff <= 0 || req.DayTariff == null || req.Lat == 0 || req.Lng == 0)
-        {
-            return Results.BadRequest("Invalid parking lot data.");
-        }
-
         var parkingLot = await db.ParkingLots.FirstOrDefaultAsync(p => p.Id == id);
         if (parkingLot is null)
             return Results.NotFound("Parking lot not found.");
 
-        parkingLot.Name = req.Name;
-        parkingLot.Capacity = req.Capacity;
-        parkingLot.Location = req.Location;
-        parkingLot.Address = req.Address;
-        parkingLot.Tariff = req.Tariff;
-        parkingLot.DayTariff = req.DayTariff;
-        parkingLot.Lat = req.Lat;
-        parkingLot.Lng = req.Lng;
-        parkingLot.Status = req.Status;
-        parkingLot.ClosedReason = req.ClosedReason;
-        parkingLot.ClosedDate = req.ClosedDate;
+        // Check if this is a status-only update
+        bool isStatusOnlyUpdate = !string.IsNullOrWhiteSpace(req.Status) &&
+                                  string.IsNullOrWhiteSpace(req.Name);
+
+        if (!isStatusOnlyUpdate)
+        {
+            // Full update - validate all required fields
+            if (string.IsNullOrWhiteSpace(req.Name) || req.Capacity <= 0 ||
+                string.IsNullOrWhiteSpace(req.Location) || string.IsNullOrWhiteSpace(req.Address) ||
+                req.Tariff <= 0 || req.DayTariff == null || req.Lat == 0 || req.Lng == 0)
+            {                return Results.BadRequest("Invalid parking lot data.");
+            }
+        }
+
+        // Update fields based on update type
+        if (!isStatusOnlyUpdate)
+        {
+            parkingLot.Name = req.Name;
+            parkingLot.Capacity = req.Capacity;
+            parkingLot.Location = req.Location;
+            parkingLot.Address = req.Address;
+            parkingLot.Tariff = req.Tariff;
+            parkingLot.DayTariff = req.DayTariff;
+            parkingLot.Lat = req.Lat;
+            parkingLot.Lng = req.Lng;
+        }
+
+        // Always update status-related fields if provided
+        if (!string.IsNullOrWhiteSpace(req.Status))
+        {
+            parkingLot.Status = req.Status;
+            parkingLot.ClosedReason = req.ClosedReason;
+            parkingLot.ClosedDate = req.ClosedDate;
+        }
 
         await db.SaveChangesAsync();
 
         return Results.Ok(new
         {
             message = "Parking lot updated successfully.",
-            parkingLotId = parkingLot.Id,
+            id = parkingLot.Id,
             parkingLotName = parkingLot.Name
         });
     }

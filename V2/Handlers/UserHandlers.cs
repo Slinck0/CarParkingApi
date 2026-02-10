@@ -62,7 +62,7 @@ public static class UserHandlers
         });
     }
 
-    public record OrgRoleRequest(string OrganizationRole);
+    public record OrgRoleRequest(string? OrganizationRole);
 
     public static async Task<IResult> AdminAssignUserToOrganization(
         int orgId,
@@ -70,7 +70,7 @@ public static class UserHandlers
         OrgRoleRequest req,
         AppDbContext db)
     {
-        var role = (req.OrganizationRole ?? "").Trim().ToUpperInvariant();
+        var role = (req.OrganizationRole ?? "EMPLOYEE").Trim().ToUpperInvariant();
         if (role != "ADMIN" && role != "EMPLOYEE")
             return Results.BadRequest("OrganizationRole must be 'ADMIN' or 'EMPLOYEE'.");
 
@@ -134,7 +134,7 @@ public static class UserHandlers
         OrgRoleRequest req,
         AppDbContext db)
     {
-        var role = (req.OrganizationRole ?? "").Trim().ToUpperInvariant();
+        var role = (req.OrganizationRole ?? "EMPLOYEE").Trim().ToUpperInvariant();
         if (role != "ADMIN" && role != "EMPLOYEE")
             return Results.BadRequest("OrganizationRole must be 'ADMIN' or 'EMPLOYEE'.");
 

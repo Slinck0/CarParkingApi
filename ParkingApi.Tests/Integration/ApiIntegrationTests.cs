@@ -9,84 +9,13 @@ using Xunit;
 
 namespace ParkingApi.Tests.Integration;
 
-public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+public class ApiIntegrationTests : IntegrationTestBase
 {
-    private readonly CustomWebApplicationFactory _factory;
-    private readonly HttpClient _client;
-
-    public ApiIntegrationTests(CustomWebApplicationFactory factory)
+    public ApiIntegrationTests(CustomWebApplicationFactory factory) : base(factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient();
     }
 
-    #region Helper Methods
-
-    private async Task<string> RegisterAndGetTokenAsync(string? username = null)
-    {
-        username ??= $"user_{Guid.NewGuid():N}"[..20];
-        var password = "TestPass123";
-        
-        var registerRequest = new
-        {
-            Username = username,
-            Password = password,
-            Name = "Test User",
-            PhoneNumber = "0612345678",
-            Email = $"{username}@test.nl",
-            BirthYear = 1990
-        };
-
-        await _client.PostAsJsonAsync("/register", registerRequest);
-
-        var loginRequest = new { Username = username, Password = password };
-        var loginResponse = await _client.PostAsJsonAsync("/login", loginRequest);
-        
-        if (!loginResponse.IsSuccessStatusCode)
-            return string.Empty;
-
-        var content = await loginResponse.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(content);
-        return doc.RootElement.GetProperty("token").GetString() ?? string.Empty;
-    }
-
-    private async Task<string> CreateAdminAndGetTokenAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        
-        var adminUsername = $"admin_{Guid.NewGuid():N}"[..20];
-        var adminUser = new UserModel
-        {
-            Username = adminUsername,
-            Password = BCrypt.Net.BCrypt.HashPassword("AdminPass123"),
-            Name = "Test Admin",
-            Email = $"{adminUsername}@test.nl",
-            Phone = "0612345679",
-            Role = "ADMIN",
-            Active = true,
-            CreatedAt = DateOnly.FromDateTime(DateTime.Now),
-            BirthYear = 1985
-        };
-        db.Users.Add(adminUser);
-        await db.SaveChangesAsync();
-
-        var loginRequest = new { Username = adminUsername, Password = "AdminPass123" };
-        var loginResponse = await _client.PostAsJsonAsync("/login", loginRequest);
-        
-        var content = await loginResponse.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(content);
-        return doc.RootElement.GetProperty("token").GetString() ?? string.Empty;
-    }
-
-    private HttpClient CreateAuthenticatedClient(string token)
-    {
-        var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client;
-    }
-
-    #endregion
+    // Helpers inherited from IntegrationTestBase
 
     #region Health Endpoint
 

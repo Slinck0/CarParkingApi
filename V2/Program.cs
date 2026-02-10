@@ -38,6 +38,7 @@ public class Program
             db.Database.EnsureCreated();
 
 
+            if (!db.Users.Any(u => u.Username == "Rens"))
             {
                 db.Users.Add(new UserModel
                 {
@@ -53,6 +54,7 @@ public class Program
                 });
                 db.SaveChanges();
             }
+
             if (!db.ParkingLots.Any(p => p.Id == 1))
             {
                 db.ParkingLots.Add(new ParkingLotModel
