@@ -16,7 +16,7 @@ def make_user(base_url):
     """Hulpfunctie om een NIEUWE (niet-admin) user aan te maken voor tests"""
     def _make_user(username_prefix, role="User"):
         unique = f"{int(time.time())}_{uuid.uuid4().hex[:6]}"
-        phone = f"06{random.randint(10000000, 99999999)}"
+        phone = f"06{random.randint(1000000, 99999999)}"
         
         reg_payload = {
             "Username": f"{username_prefix}_{unique}",

@@ -12,8 +12,9 @@ public class AppDbContext : DbContext
     public DbSet<VehicleModel> Vehicles => Set<VehicleModel>();
     public DbSet<ParkingSessionModel> ParkingSessions => Set<ParkingSessionModel>();
     public DbSet<OrganizationModel> Organizations { get; set; } = null!;
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     public DbSet<DiscountModel> Discounts => Set<DiscountModel>();
+    public DbSet<DiscountUsageModel> DiscountUsages => Set<DiscountUsageModel>();
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -37,16 +38,53 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // DateOnly converter for LibSql
+        mb.Entity<UserModel>()
+            .Property(x => x.CreatedAt)
+            .HasConversion(
+                d => d.ToString("yyyy-MM-dd"),
+                s => DateOnly.Parse(s)
+            );
+
+        mb.Entity<VehicleModel>()
+            .Property(x => x.CreatedAt)
+            .HasConversion(
+                d => d.ToString("yyyy-MM-dd"),
+                s => DateOnly.Parse(s)
+            );
+
+        mb.Entity<ParkingLotModel>()
+            .Property(x => x.CreatedAt)
+            .HasConversion(
+                d => d.ToString("yyyy-MM-dd"),
+                s => DateOnly.Parse(s)
+            );
+
+        mb.Entity<ParkingLotModel>()
+            .Property(x => x.ClosedDate)
+            .HasConversion(
+                d => d.Value.ToString("yyyy-MM-dd"),
+                s => DateOnly.Parse(s)
+            );
+
+
         mb.Entity<ReservationModel>(e =>
         {
             e.ToTable("reservation");
             e.HasKey(x => x.Id);
             e.Property(x => x.Cost).HasColumnType("decimal(10, 2)");
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            
+            // Discount-related fields
+            e.Property(x => x.DiscountCode).HasMaxLength(64);
+            e.Property(x => x.DiscountAmount).HasColumnType("decimal(10,2)");
+            e.Property(x => x.OriginalCost).HasColumnType("decimal(10,2)");
+            
             e.HasIndex(x => x.ParkingLotId);
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.VehicleId);
             e.HasIndex(x => new { x.StartTime, x.EndTime });
+            e.HasIndex(x => x.DiscountCode);
         });
 
         mb.Entity<PaymentModel>(e =>
@@ -106,6 +144,7 @@ public class AppDbContext : DbContext
         {
             e.ToTable("parking_sessions");
             e.HasKey(x => x.Id);
+            e.HasKey(x => x.ParkingLotId);
             e.Property(x => x.UserId).IsRequired();
             e.Property(x => x.VehicleId).IsRequired();
             e.Property(x => x.LicensePlate).HasMaxLength(32);
@@ -118,6 +157,56 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.VehicleId);
             e.HasIndex(x => x.StartTime);
             e.HasIndex(x => x.EndTime);
+        });
+        
+        mb.Entity<DiscountModel>(e =>
+        {
+            e.ToTable("discount");
+            e.HasKey(x => x.Id);
+
+            // Existing fields
+            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Percentage).HasColumnType("decimal(5,2)").IsRequired();
+            e.Property(x => x.ValidUntil).IsRequired();
+
+            // New fields
+            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(16).IsRequired();
+            e.Property(x => x.FixedAmount).HasColumnType("decimal(10,2)");
+            e.Property(x => x.MaxUsageCount);
+            e.Property(x => x.CurrentUsageCount).IsRequired().HasDefaultValue(0);
+            e.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
+            e.Property(x => x.UserId);
+            e.Property(x => x.OrganizationId);
+            e.Property(x => x.ParkingLotId);
+            e.Property(x => x.CreatedAt).IsRequired();
+            e.Property(x => x.CreatedBy).HasMaxLength(64);
+
+            // Indexes
+            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.IsActive);
+            e.HasIndex(x => x.ValidUntil);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.OrganizationId);
+            e.HasIndex(x => x.ParkingLotId);
+        });
+
+        mb.Entity<DiscountUsageModel>(e =>
+        {
+            e.ToTable("discount_usage");
+            e.HasKey(x => x.Id);
+
+            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
+            e.Property(x => x.ReservationId).HasMaxLength(32).IsRequired();
+            e.Property(x => x.OriginalAmount).HasColumnType("decimal(10,2)").IsRequired();
+            e.Property(x => x.DiscountAmount).HasColumnType("decimal(10,2)").IsRequired();
+            e.Property(x => x.FinalAmount).HasColumnType("decimal(10,2)").IsRequired();
+            e.Property(x => x.UsedAt).IsRequired();
+
+            // Indexes
+            e.HasIndex(x => x.DiscountId);
+            e.HasIndex(x => x.ReservationId);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.UsedAt);
         });
 
         mb.Entity<OrganizationModel>(e =>
@@ -137,20 +226,7 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.CreatedAt);
         });
 
-        mb.Entity<DiscountModel>(e =>
-        {
-            e.ToTable("discount");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
-            e.Property(x => x.Percentage).HasColumnType("decimal(5,2)").IsRequired();
-            e.Property(x => x.ValidUntil).IsRequired();
-            e.HasIndex(x => x.Code).IsUnique();
-        });
-    }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlite("Data Source=parking.db");
-    }
+
+}
 }

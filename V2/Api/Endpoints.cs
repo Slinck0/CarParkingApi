@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using V2.Data;
 using V2.Models;
 using V2.Services;
-
+using V2.Handlers;
 namespace V2.Endpoints;
 
 public static class Endpoints
@@ -42,6 +42,7 @@ public static class Endpoints
 
       reservationGroup.MapPost("", ReservationHandlers.CreateReservation);
       reservationGroup.MapGet("/me", ReservationHandlers.GetMyReservations);
+      reservationGroup.MapGet("/{id}", ReservationHandlers.GetReservationById);
       reservationGroup.MapDelete("/{id}", ReservationHandlers.CancelReservation);
       reservationGroup.MapPut("/{id}", ReservationHandlers.UpdateReservation);
 
@@ -58,7 +59,7 @@ public static class Endpoints
       app.MapPut("/vehicles/{id}", VehicleHandlers.UpdateVehicle)
          .RequireAuthorization().WithTags("Vehicles");
 
-      app.MapDelete("vehicles/{id}", VehicleHandlers.DeleteVehicle)
+      app.MapDelete("/vehicles/{id}", VehicleHandlers.DeleteVehicle)
          .RequireAuthorization().WithTags("Vehicles");
 
       // ----------------------------------------------------
@@ -66,11 +67,18 @@ public static class Endpoints
       // ----------------------------------------------------
       sessionGroup.MapPost("/start", SessionHandlers.StartSession);
       sessionGroup.MapPost("/stop", SessionHandlers.StopSession);
+      sessionGroup.MapGet("/active/{licensePlate}", SessionHandlers.GetActiveSession);
 
       // ----------------------------------------------------
       // Parking Lot Endpoints
       // ----------------------------------------------------
       app.MapPost("/parking-lots", ParkingLotHandlers.CreateParkingLot)
+         .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+      app.MapGet("/parking-lots/{id}", ParkingLotHandlers.GetParkingLotById)
+         .WithTags("ParkingLots");
+      app.MapDelete("/parking-lots/{id}", ParkingLotHandlers.DeleteParkingLot)
+         .RequireAuthorization("ADMIN").WithTags("ParkingLots");
+      app.MapPut("/parking-lots/{id}/status", ParkingLotHandlers.UpdateParkingLot)
          .RequireAuthorization("ADMIN").WithTags("ParkingLots");
 
       // ----------------------------------------------------
@@ -107,5 +115,38 @@ public static class Endpoints
       adminGroup.MapPut("/payments/{transaction}", PaymentHandlers.AdminUpdatePayment);
 
       adminGroup.MapPut("/users/{id}/toggle-active", ProfileHandlers.UpdateState);
+
+      var billingGroup = app.MapGroup("/billing").RequireAuthorization().WithTags("Billing");
+
+      billingGroup.MapGet("", BillingHandlers.GetUpcomingPayments)
+         .WithName("GetUpcomingPayments")
+         .WithDescription("Get upcoming payments for the authenticated user");
+
+      billingGroup.MapGet("/history", BillingHandlers.GetBillingHistory)
+         .WithName("GetBillingHistory")
+         .WithDescription("Get billing history for the authenticated user");
+
+      // ----------------------------------------------------
+      // ADMIN DISCOUNT MANAGEMENT ENDPOINTS
+      // ----------------------------------------------------
+      var adminDiscounts = app.MapGroup("/admin/discounts")
+          .RequireAuthorization("ADMIN")
+          .WithTags("Admin - Discounts");
+
+      adminDiscounts.MapPost("", DiscountHandler.CreateDiscount);
+      adminDiscounts.MapGet("", DiscountHandler.GetAllDiscounts);
+      adminDiscounts.MapGet("/{code}", DiscountHandler.GetDiscountByCode);
+      adminDiscounts.MapPut("/{id:int}", DiscountHandler.UpdateDiscount);
+      adminDiscounts.MapDelete("/{id:int}", DiscountHandler.DeactivateDiscount);
+      adminDiscounts.MapGet("/{id:int}/stats", DiscountHandler.GetDiscountStatistics);
+
+      // USER DISCOUNT VALIDATION ENDPOINT
+      app.MapGet("/discounts/validate/{code}", DiscountHandler.ValidateDiscountForUser)
+          .RequireAuthorization()
+          .WithTags("Discounts");
+
+
+      
+
    }
 }

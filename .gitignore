@@ -6,11 +6,14 @@ Thumbs.db
 # IDE / Editor
 .vscode/
 .idea/
+*.user
+*.suo
 
 # Virtual environments
 .venv/
 venv/
 .env/
+
 # Python cache
 __pycache__/
 *.pyc
@@ -20,15 +23,17 @@ __pycache__/
 */__pycache__/
 */.pytest_cache/
 
+*.ps1
+
 # Logs & temp
 *.log
 *.tmp
 *.swp
 *.bak
 
-# === Project-specifiek ===
+# === Project-specific ===
 
-# Negeer ALLE data onder V1/api/data (alle subfolders)
+# Ignore ALL data under V1/api/data (all subfolders)
 V1/api/data/**
 V1/api/Process/** 
 V2/Data_json/** 
@@ -37,10 +42,29 @@ V2/Data_json/**
 *.db
 *.db-shm
 *.db-wal
-**/bin/
-*.user
-*.suo
- 
-v2/obj/
-v2/bin/
-v2/.idea
+
+# Build results - Ignore ALL bin and obj folders recursively
+**/[Bb]in/
+**/[Oo]bj/
+
+# Migration scripts and other local scripts
+*.ps1
+*.sql
+
+# Documentation / generated markdown
+*.md
+
+# Diagrams
+diagrams/
+*.puml
+
+# AI agent config
+.claude/
+.agent/
+
+# App settings (secrets live in GitHub Secrets / local env vars only)
+**/appsettings.json
+
+# Test results / output
+*.txt
+**/TestResults/

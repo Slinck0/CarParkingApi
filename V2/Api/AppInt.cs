@@ -17,14 +17,14 @@ namespace V2.Api
             var connectionString = config.GetConnectionString("DefaultConnection");
 
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(connectionString)
+                .UseLibSql(connectionString)
                 .Options;
+
 
             using var db = new AppDbContext(options);
             await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
             await db.Database.ExecuteSqlRawAsync("PRAGMA synchronous=NORMAL;");
 
-            // Get JSON file paths from configuration
             var paths = config.GetSection("JsonPaths");
             var lotsPath = paths["Lots"];
             var reservationsPath = paths["Reservations"];

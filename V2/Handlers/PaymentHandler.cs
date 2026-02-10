@@ -36,7 +36,7 @@ public static class PaymentHandlers
 
         var payment = new PaymentModel
         {
-            Transaction = Guid.NewGuid().ToString("N"),
+            Transaction = Guid.NewGuid().ToString(),
             Amount = reservation.Cost,
             Initiator = user?.Username ?? userId.ToString(),
             CreatedAt = now,

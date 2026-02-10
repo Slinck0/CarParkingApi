@@ -66,7 +66,7 @@ public static class SessionHandlers
         }
 
         var session = await db.ParkingSessions
-            .Where(s => s.VehicleId == vehicle.Id && s.EndTime == null)
+            .Where(s => s.VehicleId == vehicle.Id && s.ParkingLotId == id && s.EndTime == null)
             .OrderByDescending(s => s.StartTime)
             .FirstOrDefaultAsync();
 
@@ -89,5 +89,28 @@ public static class SessionHandlers
             message = $"Session stopped for vehicle {req.LicensePlate} at parking lot {parkingLot.Name}.",
             cost = session.Cost
         });
+    }
+
+    public static async Task<IResult> GetActiveSession(int id, string licensePlate, AppDbContext db, HttpContext http)
+    {
+        var userId = ClaimHelper.GetUserId(http);
+        if (userId == 0) return Results.Unauthorized();
+
+        var session = await db.ParkingSessions
+            .Where(s => s.LicensePlate == licensePlate && s.EndTime == null && s.ParkingLotId == id)
+            .FirstOrDefaultAsync();
+
+        if (session == null)
+        {
+            return Results.NotFound("No active session found for this vehicle in this parking lot.");
+        }
+
+        // Verify ownership
+        if (session.UserId != userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        return Results.Ok(session);
     }
 }

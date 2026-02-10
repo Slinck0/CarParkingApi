@@ -2,7 +2,7 @@ name: .NET 9 CI/CD
 
 on:
   push:
-    branches: [ main, dev-main ]
+    branches: [ main, dev-main, herkansing ]
   pull_request:
     branches: [ main, dev-main ]
 
@@ -17,17 +17,16 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       - name: Restore
-        run: dotnet restore V2/V2.csproj
+        run: dotnet restore
       - name: Build Release
         run: |
-          dotnet build V2/V2.csproj \
-          --configuration Release \
+          dotnet build --configuration Release \
           --no-restore \
           -p:ContinuousIntegrationBuild=true
 
   unit-test:
     name: Unit Testing
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: build
     steps:
       - uses: actions/checkout@v4
@@ -35,21 +34,25 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-      - name: Run Tests with Coverage
-        run: dotnet test ParkingApi.Tests --collect:"XPlat Code Coverage" --results-directory ./coverage
+      - name: Run Unit Tests with Coverage
+        run: |
+          dotnet test ParkingApi.Tests \
+          --filter "FullyQualifiedName!~Integration" \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
-      - name: Generate Report
+      - name: Generate Coverage Report
         run: |
-          reportgenerator `
-          -reports:./coverage/**/coverage.cobertura.xml `
-          -targetdir:./coverage-report `
-          -reporttypes:Html `
+          reportgenerator \
+          -reports:./coverage/**/coverage.cobertura.xml \
+          -targetdir:./coverage-report \
+          -reporttypes:"Html;Cobertura" \
           -classfilters:-*.Migrations.*
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
-          name: Coverage-Report
+          name: Unit-Test-Coverage
           path: ./coverage-report
 
   integration-test:
@@ -57,27 +60,61 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     env:
-      BASE_URL: "http://localhost:5000"
-      ASPNETCORE_ENVIRONMENT: "Development" 
+      ASPNETCORE_ENVIRONMENT: Testing
+      USE_REAL_DATABASE: "true"
+      # Connection strings injected from GitHub Secrets
+      ConnectionStrings__TestConnection: ${{ secrets.TURSO_TEST_CONNECTION }}
+      ConnectionStrings__DefaultConnection: ${{ secrets.TURSO_DEFAULT_CONNECTION }}
+      Jwt__Key: ${{ secrets.JWT_KEY }}
+      Jwt__Issuer: ParkingApi
+      Jwt__Audience: ParkingApiUsers
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Generate appsettings.json from secrets
+        env:
+          JWT_KEY: ${{ secrets.JWT_KEY }}
+          CONN_DEFAULT: ${{ secrets.TURSO_DEFAULT_CONNECTION }}
+          CONN_TEST: ${{ secrets.TURSO_TEST_CONNECTION }}
+        run: |
+          node -e "
+          const fs = require('fs');
+          const config = {
+            Jwt: { Issuer: 'ParkingApi', Audience: 'ParkingApiUsers', Key: process.env.JWT_KEY || '' },
+            ConnectionStrings: {
+              DefaultConnection: process.env.CONN_DEFAULT || '',
+              TestConnection: process.env.CONN_TEST || ''
+            }
+          };
+          fs.writeFileSync('V2/appsettings.json', JSON.stringify(config, null, 2));
+          console.log('Generated V2/appsettings.json');
+          console.log('JWT_KEY length:', (process.env.JWT_KEY || '').length);
+          console.log('TestConnection length:', (process.env.CONN_TEST || '').length);
+          console.log('DefaultConnection length:', (process.env.CONN_DEFAULT || '').length);
+          "
+      - name: Restore Dependencies
+        run: dotnet restore
+      - name: Run Integration Tests with Coverage
+        run: |
+          dotnet test ParkingApi.Tests \
+          --filter "FullyQualifiedName~Integration" \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage \
+          --logger "console;verbosity=detailed"
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+      - name: Generate Coverage Report
+        run: |
+          reportgenerator \
+          -reports:./coverage/**/coverage.cobertura.xml \
+          -targetdir:./coverage-report \
+          -reporttypes:"Html;Cobertura" \
+          -classfilters:-*.Migrations.*
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
         with:
-          python-version: '3.10'
-      - name: Install Python Dependencies
-        run: |
-          pip install pytest requests uuid
-      - name: Start API in Background
-        run: |
-          dotnet run --project V2/V2.csproj --urls "http://localhost:5000" &
-      - name: Wait for API to be ready
-        run: |
-          sleep 15
-      - name: Run Pytest
-        run: |
-          pytest
+          name: Integration-Test-Coverage
+          path: ./coverage-report

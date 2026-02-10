@@ -26,6 +26,16 @@ public static class JwtExtensions
                     ValidAudience = audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
                 };
+
+                // Handle authorization failures properly
+                o.Events = new JwtBearerEvents
+                {
+                    OnForbidden = context =>
+                    {
+                        context.Response.StatusCode = 403;
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
         // HIER: policies definiëren

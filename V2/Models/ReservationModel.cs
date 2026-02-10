@@ -14,4 +14,9 @@ public class ReservationModel
     public DateTimeOffset CreatedAt { get; set; }
     public ReservationStatus Status { get; set; }
     public decimal Cost { get; set; }
+    
+    // Discount-related fields
+    public string? DiscountCode { get; set; }
+    public decimal? DiscountAmount { get; set; }
+    public decimal OriginalCost { get; set; }
 }
